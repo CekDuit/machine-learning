@@ -10,7 +10,7 @@ class OcbcExtractor(BaseExtractor):
         """
         return title in ["Successful Bill Payment", "TRANSFER DANA MASUK BI-FAST"] and email_from in ["callcenter@ocbcnisp.com", "noreply@ocbcnisp.com"]
 
-    def extract(self, email: str) -> list[TransactionData]:
+    def extract(self, title: str, email_from: str, email: str) -> list[TransactionData]:
         """
         Extract payment details from the OCBC email content.
         """
@@ -28,7 +28,7 @@ class OcbcExtractor(BaseExtractor):
 
         return transactions
 
-    def _extract_top_up(self, email: str) -> TransactionData:
+    def _extract_top_up(self, email: str) -> TransactionData | None:
         """
         Extract details from the existing format.
         """
@@ -40,10 +40,11 @@ class OcbcExtractor(BaseExtractor):
         
         if from_match and to_match and amount_match and date_match and ref_match:
             trx = TransactionData()
-            trx.sender_name = from_match.group(1).strip()
-            trx.sender_account = from_match.group(2).strip()
-            trx.recipient_name = to_match.group(1).strip()
-            trx.recipient_account = to_match.group(2).strip()
+            sender_name = from_match.group(1).strip()
+            sender_account = from_match.group(2).strip()
+            recipient_name = to_match.group(1).strip()
+            recipient_account = to_match.group(2).strip()
+            trx.merchant = recipient_name
             trx.currency = "IDR"
             trx.amount = Decimal(amount_match.group(1).replace(",", ""))
             trx.date = datetime.datetime.strptime(date_match.group(1), "%d/%b/%Y")
@@ -52,7 +53,7 @@ class OcbcExtractor(BaseExtractor):
             return trx
         return None
 
-    def _extract_transfer(self, email: str) -> TransactionData:
+    def _extract_transfer(self, email: str) -> TransactionData | None:
         """
         Extract details from the new format (based on the image provided).
         """
@@ -72,12 +73,13 @@ class OcbcExtractor(BaseExtractor):
             transaction_date_match and transaction_time_match
         ):
             trx = TransactionData()
-            trx.sender_name = sender_name_match.group(1).strip()
-            trx.sender_account = sender_account_match.group(1).strip()
+            sender_name = sender_name_match.group(1).strip()
+            sender_account = sender_account_match.group(1).strip()
             trx.currency = "IDR"
             trx.amount = Decimal(amount_match_new.group(1).replace(".", "").replace(",", ""))
-            trx.recipient_name = recipient_name_match.group(1).strip()
-            trx.recipient_account = recipient_account_match.group(1).strip()
+            recipient_name = recipient_name_match.group(1).strip()
+            recipient_account = recipient_account_match.group(1).strip()
+            trx.merchant = recipient_account
             trx.date = datetime.datetime.strptime(transaction_date_match.group(1).strip(), "%d %B %Y")
             trx.description = f"Transfer from {bank_sender_match.group(1).strip()} to {recipient_bank_match.group(1).strip()}"
             trx.trx_id = f"{trx.date.strftime('%Y%m%d')}-{transaction_time_match.group(1).strip()}"  # Generate unique ID

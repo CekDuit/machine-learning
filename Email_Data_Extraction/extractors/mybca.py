@@ -8,7 +8,7 @@ class MyBCAExtrator(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
         return title == "Internet Transaction Journal" and email_from == "bca@bca.co.id"
 
-    def extract(self, email: str) -> list[TransactionData]:
+    def extract(self, title: str, email_from: str, email: str) -> list[TransactionData]:
         # Example format:
         # Status 	: 	Successful
         # Transaction Date 	: 	19 Nov 2024 17:52:19
