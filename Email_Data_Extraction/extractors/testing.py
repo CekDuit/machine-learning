@@ -29,14 +29,16 @@
 # print(str(JagoExtractor().extract(data)[0]))
 
 
-from livin import JagoExtractor
+# from seabank import SeaBankExtractor
 
-# Contoh email
-data = """
-Dari : MA • 1039984217777
-Ke : BUBU Store
-Jumlah : Rp35.000
-Tanggal transaksi : 14 August 2024 23:51 WIB
-"""
+# # Contoh email
+# data = """
+# Waktu Transaksi : 22 Nov 2024 18:48
+# Jenis Transaksi : Real Time (BI-FAST)
+# Transfer Dari : BOBO DELONA-XXXXXXXXX3859
+# Rekening Tujuan : JAGO-XXXXXXXXX2337
+# Jumlah : Rp200.000
+# No. Referensi : 202411224350224969367
+# """
 
-print(str(JagoExtractor().extract(data)[0]))
+# print(str(SeaBankExtractor().extract(data)[0]))
