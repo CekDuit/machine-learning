@@ -42,3 +42,60 @@
 # """
 
 # print(str(SeaBankExtractor().extract(data)[0]))
+
+
+
+from livin import MandiriExtractor
+
+data_transfer = """
+Data_Transfer
+Penerima : FLIPTECH LENTERA INS
+Bank Mandiri - 157000534545393
+Tanggal : 13 Nov 2024
+Jam : 15:53:45 WIB
+Jumlah Transfer : Rp200.406,00
+No. Referensi : 2411131121092046786
+Keterangan : -
+Rekening Sumber : DADADA TELY
+*****5683
+"""
+
+data_topup = """
+Data_TopUp
+Penyedia Jasa : 3 Prepaid
+****0248
+Tanggal : 13 Nov 2024
+Jam : 15:53:45 WIB
+Nominal Top-up : Rp 40.000,00
+Biaya Transaksi : Rp 0,00
+Total Transaksi : Rp 40.000,00
+No. Referensi : 702410291310161710
+Rekening Sumber : ARISTO TELY
+*****5683
+"""
+
+data_payment = """
+Data_Payment
+Penerima : KOPI 7 KAMBANG IWAK -HO
+PALEMBANG - ID
+Tanggal : 13 Nov 2024
+Jam : 18:35:00 WIB
+Nominal Transaksi : Rp 124.300,00
+No. Referensi : 2410291122532788441
+No. Referensi QRIS : 410698015472
+Merchant PAN : 9360001430019008082
+Customer PAN : 9360000812187256836
+Pengakuisisi : Bank BCA
+Terminal ID : A2917806
+Sumber Dana : ARISTO TELY
+*****5683
+"""
+
+print("Hasil Transfer:")
+print(str(MandiriExtractor().extract(data_transfer)[0]))
+
+print("\nHasil Top-Up:")
+print(str(MandiriExtractor().extract(data_topup)[0]))
+
+print("\nHasil Payment:")
+print(str(MandiriExtractor().extract(data_payment)[0]))
