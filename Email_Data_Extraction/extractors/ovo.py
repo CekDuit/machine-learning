@@ -3,7 +3,7 @@ from .base_extractor import BaseExtractor, TransactionData
 import re
 import datetime
 
-class OvoExtractor(BaseExtractor):
+class OVOExtractor(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
         return title == "OVO QR Payment Receipt" and email_from == "noreply@ovo.co.id"
     
@@ -42,24 +42,3 @@ class OvoExtractor(BaseExtractor):
         }
 
         return [trx]
-
-
-''' Usage Example
-email_body = """
-Nama Acquirer    : BCA
-Nama Toko        : TRUSTEA
-Lokasi           : SURABAYA, 60293 ID
-No. Referensi    : p01-240917-fd2f8c4f-f6aa-491b-9149-31beeb122126
-No. Resi (Kode Transaksi) : 072bbc31f9ba
-Kode Approval    : 634065
-Metode Pembayaran: OVO Cash
-Pembayaran       - Rp6.000
-"""
-
-extractor = OvoExtractor()
-if extractor.match("OVO QR Payment Receipt", "noreply@ovo.co.id"):
-    transactions = extractor.extract(email_body)
-    for transaction in transactions:
-        print(transaction)
-
-'''
