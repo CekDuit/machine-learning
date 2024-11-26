@@ -113,10 +113,11 @@ class MandiriExtractor(BaseExtractor):
 
         return trx
     
-    def extract(self, email: str) -> list[TransactionData]:
+    def extract(self, title: str, email_from: str, email: str) -> list[TransactionData]:
         if "Data_Transfer" in email:
             return [self.extract_transfer(email)]
         elif "Data_TopUp" in email:
             return [self.extract_topup(email)]
         elif "Data_Payment" in email:
             return [self.extract_payment(email)]
+        return []

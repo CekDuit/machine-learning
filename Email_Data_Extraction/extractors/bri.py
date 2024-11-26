@@ -10,7 +10,7 @@ class BriExtractor(BaseExtractor):
         """
         return email_from == "noreply@bri.co.id" and "Berhasil" in title
 
-    def extract(self, email: str, title: str) -> list[TransactionData]:
+    def extract(self, title: str, email_from: str, email: str) -> list[TransactionData]:
         """
         Extract payment details based on the email title and content.
         """
@@ -37,11 +37,11 @@ class BriExtractor(BaseExtractor):
 
         # Extract sender name
         sender_match = re.search(r"Sumber Dana\s*:\s*(.+)", email)
-        trx.sender_name = sender_match.group(1).strip() if sender_match else "Unknown Sender"
+        sender_name = sender_match.group(1).strip() if sender_match else "Unknown Sender"
 
         # Extract recipient name
         recipient_match = re.search(r"(ShopeePay|DANA|OVO|Nama Tujuan)\s*:\s*(.+)", email)
-        trx.recipient_name = recipient_match.group(2).strip() if recipient_match else "Unknown Recipient"
+        recipient_name = recipient_match.group(2).strip() if recipient_match else "Unknown Recipient"
 
         # Extract payment details
         trx.amount = Decimal(
@@ -50,7 +50,8 @@ class BriExtractor(BaseExtractor):
         trx.fees = Decimal(
             re.search(r"Biaya Admin\s*Rp([\d\.]+)", email).group(1).replace(".", "")
         )
-        trx.description = f"Top Up {trx.recipient_name}"
+        trx.description = f"Top Up {recipient_name}"
+        trx.merchant = recipient_name
         return [trx]
 
     def _extract_transfer(self, email: str, title: str) -> list[TransactionData]:
@@ -68,11 +69,11 @@ class BriExtractor(BaseExtractor):
 
         # Extract sender name
         sender_match = re.search(r"Sumber Dana\s*:\s*(.+)", email)
-        trx.sender_name = sender_match.group(1).strip() if sender_match else "Unknown Sender"
+        sender_name = sender_match.group(1).strip() if sender_match else "Unknown Sender"
 
         # Extract recipient name
         recipient_match = re.search(r"Nama Tujuan\s*:\s*(.+)", email)
-        trx.recipient_name = recipient_match.group(1).strip() if recipient_match else "Unknown Recipient"
+        recipient_name = recipient_match.group(1).strip() if recipient_match else "Unknown Recipient"
 
         # Extract payment details
         trx.amount = Decimal(
@@ -81,5 +82,6 @@ class BriExtractor(BaseExtractor):
         trx.fees = Decimal(
             re.search(r"Biaya Admin\s*Rp([\d\.]+)", email).group(1).replace(".", "")
         )
-        trx.description = "Transfer to " + trx.recipient_name
+        trx.description = "Transfer to " + recipient_name
+        trx.merchant = recipient_name
         return [trx]

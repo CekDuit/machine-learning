@@ -8,7 +8,7 @@ class SeaBankExtractor(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
         return "Notifikasi Transfer SeaBank" in title.lower() and email_from == "seabank@seabank.com"
 
-    def extract(self, email: str) -> list[TransactionData]:
+    def extract(self, title: str, email_from: str, email: str) -> list[TransactionData]:
         # Example format:
         # Waktu Transaksi : 22 Nov 2024 18:48
         # Jenis Transaksi : Real Time (BI-FAST)

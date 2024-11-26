@@ -3,15 +3,16 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 
-
 class TransactionData:
     # Expected columns
     trx_id: str
     date: datetime
     merchant: str
+    fees: Decimal = Decimal(0)
     amount: Decimal
     currency: str
     payment_method: str
+    extra_data: dict = {}
 
     is_incoming: bool
     description: str
@@ -34,5 +35,5 @@ class BaseExtractor:
         pass
 
     @abstractmethod
-    def extract(self, email: str) -> list[TransactionData]:
+    def extract(self, title: str, email_from: str, email: str) -> list[TransactionData]:
         pass

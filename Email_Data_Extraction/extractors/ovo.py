@@ -7,7 +7,7 @@ class OVOExtractor(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
         return title == "OVO QR Payment Receipt" and email_from == "noreply@ovo.co.id"
     
-    def extract(self, email: str) -> list[TransactionData]:
+    def extract(self, title: str, email_from: str, email: str) -> list[TransactionData]:
         # Extract payment details from OVO email content
 
         trx = TransactionData()
