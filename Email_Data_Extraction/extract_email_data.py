@@ -1,5 +1,7 @@
 import asyncio
 import datetime
+import email
+import importlib
 import os
 import pickle
 import random
@@ -10,11 +12,51 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import re
 import json
-
 import pandas as pd
+import html2text
+import base64
+import csv
+
+from extractors.grab import GrabExtractor
+from extractors.base_extractor import BaseExtractor, EmailContent, TransactionData
+from extractors.bri import BriExtractor
+from extractors.jago import JagoExtractor
+from extractors.livin import MandiriExtractor
+from extractors.mybca import MyBCAExtrator
+from extractors.ocbc import OcbcExtractor
+from extractors.ovo import OVOExtractor
+from extractors.seabank import SeaBankExtractor
+
+exs: list[BaseExtractor] = [
+    BriExtractor(),
+    JagoExtractor(),
+    MandiriExtractor(),
+    MyBCAExtrator(),
+    OcbcExtractor(),
+    OVOExtractor(),
+    SeaBankExtractor(),
+    GrabExtractor()
+]
+
+import email
+import email.parser
+import email.message
+import email.policy
+
+parser = email.parser.BytesParser(
+    email.message.EmailMessage, policy=email.policy.default
+)
+
+import extractors.base_extractor
+import title_classifier
+
+# Warning: this script loads all the results into memory, might not be suitable for large datasets
 
 # Initialize InstalledAppFlow with your client secret file
 TOKEN_PICKLE = "token.pickle"
+tc = title_classifier.EmailTitleClassifier(
+    "trained/email_titles_nlp.keras", "trained/tv_layer.pkl"
+)
 
 
 def get_credentials():
@@ -71,7 +113,7 @@ def extract_domain(email):
     return None
 
 
-async def fetch_email_data(gmail, message_id):
+async def fetch_email_data(gmail, message_id) -> list[TransactionData]:
     async with Aiogoogle(user_creds=user_creds, client_creds=client_creds) as aiogoogle:
         try:
             msg = await aiogoogle.as_user(
@@ -80,14 +122,46 @@ async def fetch_email_data(gmail, message_id):
             headers = msg["payload"]["headers"]
 
             subject = next(
-                (header["value"] for header in headers if header["name"] == "Subject"), ""
+                (header["value"] for header in headers if header["name"] == "Subject"),
+                "",
             )
             from_email = next(
                 (header["value"] for header in headers if header["name"] == "From"), ""
             )
             from_domain = extract_domain(from_email)
-    
-            return f"{subject} from:{from_domain}"
+
+            # Classify the email title
+            [is_tx] = tc.predict([subject])
+            if not is_tx:
+                return []
+
+            full_msg = await aiogoogle.as_user(
+                gmail.users.messages.get(userId="me", id=message_id, format="raw")
+            )
+
+            # Try to go through all the extractors
+            trxs = []
+
+            # Load the email content
+            data = parser.parsebytes(base64.urlsafe_b64decode(full_msg["raw"]))
+            content = EmailContent(data)
+            
+            # Extract transactions
+            try:
+                for ex in exs:
+                    if ex.match(content.title, content.from_email):
+                        trxs.extend(ex.extract(content))
+            except Exception as e:
+                print(f"Error while extracting transactions for {subject} from:{from_domain}: {e}")
+
+            if not trxs:
+                dump_path = f"dumped/{from_domain}-{message_id}.eml"
+                print(
+                    f"No transactions found in {subject} from:{from_domain}. Dumping the message to {dump_path}"
+                )
+                with open(dump_path, "wb") as f:
+                    f.write(base64.urlsafe_b64decode(full_msg["raw"]))
+            return trxs
         except HTTPError as e:
             if e.res.status_code == 429:
                 print("Rate limit exceeded, waiting...")
@@ -97,7 +171,7 @@ async def fetch_email_data(gmail, message_id):
                 raise e
 
 
-async def extract_titles(gmail, page_token=None):
+async def extract_tx(gmail, page_token=None):
     async with Aiogoogle(user_creds=user_creds, client_creds=client_creds) as aiogoogle:
         response = await aiogoogle.as_user(
             gmail.users.messages.list(userId="me", maxResults=500, pageToken=page_token)
@@ -105,37 +179,37 @@ async def extract_titles(gmail, page_token=None):
 
         messages = response.get("messages", [])
         next_page_token = response.get("nextPageToken", None)
-        titles = []
+        txs = []
 
         if not messages:
-            return titles, next_page_token
+            return txs, next_page_token
 
         chunk_size = 48
         for i in range(0, len(messages), chunk_size):
             chunk = messages[i : i + chunk_size]
             tasks = [fetch_email_data(gmail, message["id"]) for message in chunk]
-            chunk_titles = await asyncio.gather(*tasks)
-            titles.extend(chunk_titles)
-            
+            chunk_txs = await asyncio.gather(*tasks)
+            txs.extend(tx for txs in chunk_txs for tx in txs)
+
             # Sleep to prevent hitting the rate limit (Gmail API limits to 50 requests per second for message.get)
             await asyncio.sleep(1)
 
-    return titles, next_page_token
+    return txs, next_page_token
 
 
 async def main():
     start_time = datetime.datetime.now()
-    
+
     async with Aiogoogle(user_creds=user_creds, client_creds=client_creds) as aiogoogle:
         gmail = await aiogoogle.discover("gmail", "v1")
 
-        extract_limit = 10000
+        extract_limit = 50
         extracted_count = 0
         all_titles = []
         next_page_token = None
 
         while extracted_count < extract_limit:
-            titles, next_page_token = await extract_titles(gmail, next_page_token)
+            titles, next_page_token = await extract_tx(gmail, next_page_token)
             all_titles.extend(titles)
             extracted_count += len(titles)
 
@@ -149,7 +223,7 @@ async def main():
 
         # Turn into a CSV and download
         df = pd.DataFrame(all_titles, columns=["title"])
-        df.to_csv("email-titles.csv", index=False)
+        df.to_csv("email-extract.csv", index=False)
 
 
 # Run the main function

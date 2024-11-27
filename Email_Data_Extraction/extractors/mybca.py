@@ -1,5 +1,5 @@
 from decimal import Decimal
-from .base_extractor import BaseExtractor, TransactionData
+from .base_extractor import BaseExtractor, EmailContent, TransactionData
 import re
 import datetime
 
@@ -8,7 +8,8 @@ class MyBCAExtrator(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
         return title == "Internet Transaction Journal" and email_from == "bca@bca.co.id"
 
-    def extract(self, title: str, email_from: str, email: str) -> list[TransactionData]:
+    def extract(self, content: EmailContent) -> list[TransactionData]:
+        email = content.get_plaintext()
         # Example format:
         # Status 	: 	Successful
         # Transaction Date 	: 	19 Nov 2024 17:52:19
@@ -28,16 +29,16 @@ class MyBCAExtrator(BaseExtractor):
 
         # Split per line and match
         currency, amount = re.search(
-            r"Target Amount\s*:\s*(\w{3})\s*([\d,\.]+)", email
+            r"(?:Target Amount|Total Payment)\s*:\s*(\w{3})\s*([\d,\.]+)", email
         ).groups()
         trx.currency = currency
         trx.amount = Decimal(amount.replace(",", ""))
 
-        trx.description = re.search(r"Remarks\s*:\s*(.+)", email).group(1)
-        trx.merchant = re.search(r"Beneficiary Name\s*:\s*(.+)", email).group(1)
+        trx.description = re.search(r"(?:Remarks|Description)\s*:\s*(.+)", email).group(1)
+        trx.merchant = re.search(r"(?:Beneficiary Name|Company/Product Name)\s*:\s*(.+)", email).group(1)
         trx.trx_id = re.search(r"Reference No\.\s*:\s*(.+)", email).group(1)
         trx.date = datetime.datetime.strptime(
-            re.search(r"Transaction Date\s*:\s*(.+)", email).group(1),
+            re.search(r"Transaction Date\s*:\s*(.+)", email).group(1).strip(),
             "%d %b %Y %H:%M:%S",
         )
         

@@ -1,5 +1,5 @@
 from decimal import Decimal
-from base_extractor import BaseExtractor, TransactionData
+from .base_extractor import BaseExtractor, EmailContent, TransactionData
 import re
 import datetime
 
@@ -113,7 +113,8 @@ class MandiriExtractor(BaseExtractor):
 
         return trx
     
-    def extract(self, title: str, email_from: str, email: str) -> list[TransactionData]:
+    def extract(self, content: EmailContent) -> list[TransactionData]:
+        email = content.get_plaintext()
         if "Data_Transfer" in email:
             return [self.extract_transfer(email)]
         elif "Data_TopUp" in email:

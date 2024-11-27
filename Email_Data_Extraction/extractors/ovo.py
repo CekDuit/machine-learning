@@ -1,5 +1,5 @@
 from decimal import Decimal
-from .base_extractor import BaseExtractor, TransactionData
+from .base_extractor import BaseExtractor, EmailContent, TransactionData
 import re
 import datetime
 
@@ -7,8 +7,9 @@ class OVOExtractor(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
         return title == "OVO QR Payment Receipt" and email_from == "noreply@ovo.co.id"
     
-    def extract(self, title: str, email_from: str, email: str) -> list[TransactionData]:
+    def extract(self, content: EmailContent) -> list[TransactionData]:
         # Extract payment details from OVO email content
+        email = content.get_plaintext()
 
         trx = TransactionData()
 
