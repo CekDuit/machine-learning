@@ -1,3 +1,4 @@
 title-classification-ds/**/*
 dumped/**/*
 !**/.gitkeep
+*.csv
