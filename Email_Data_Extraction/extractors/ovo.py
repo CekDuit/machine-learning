@@ -18,13 +18,13 @@ class OVOExtractor(BaseExtractor):
         trx.payment_method = "OVO"
 
         # Extracting Amount and Currency
-        amount_match = re.search(r"Pembayaran\s*-\s*Rp([\d,\.]+)", email)
+        amount_match = re.search(r"Pembayaran\s+Rp([\d,\.]+)", email)
         if amount_match:
             trx.currency = "IDR"
             trx.amount = Decimal(amount_match.group(1).replace(",", "").replace(".", ""))
 
         # Extract merchant name
-        trx.merchant = re.search(r"Nama Toko\s*:\s*(.+)", email).group(1)
+        trx.merchant = re.search(r"Nama Toko\s+(.+)", email).group(1)
 
         # Extract transaction date
         date_match = re.search(r"(\d{2} \w+ \d{4}, \d{2}:\d{2})", email)
@@ -32,14 +32,14 @@ class OVOExtractor(BaseExtractor):
             trx.date = datetime.datetime.strptime(date_match.group(1), "%d %b %Y, %H:%M")
 
         # Extract location (optional)
-        location_match = re.search(r"Lokasi\s*:\s*(.+)", email)
+        location_match = re.search(r"Lokasi\s+(.+)", email)
         if location_match:
             trx.description = f"Location: {location_match.group(1)}"
 
         # Additional details if needed
         trx.extra_data = {
-            "Approval Code": re.search(r"Kode Approval\s*:\s*(.+)", email).group(1),
-            "Payment Method": re.search(r"Metode Pembayaran\s*:\s*(.+)", email).group(1),
+            "Approval Code": re.search(r"Kode Approval\s+(.+)", email).group(1),
+            "Payment Method": re.search(r"Metode Pembayaran\s+(.+)", email).group(1),
         }
 
         return [trx]

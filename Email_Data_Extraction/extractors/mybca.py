@@ -29,8 +29,18 @@ class MyBCAExtrator(BaseExtractor):
 
         # Split per line and match
         currency, amount = re.search(
-            r"(?:Target Amount|Total Payment)\s*:\s*(\w{3})\s*([\d,\.]+)", email
+            r"(?:Target Amount|Total Payment|Amount)\s*:\s*(\w{3})\s*([\d,\.]+)", email
         ).groups()
+        
+        fee_search = re.search(
+            r"(?:Fees|Fee)\s*:\s*(\w{3})\s*([\d,\.]+)", email
+        )
+        
+        if fee_search:
+            currency, fee = fee_search.groups()
+            trx.fees = Decimal(fee.replace(",", ""))
+            trx.fees = Decimal(fee.replace(",", ""))
+        
         trx.currency = currency
         trx.amount = Decimal(amount.replace(",", ""))
 
