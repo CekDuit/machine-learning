@@ -1,5 +1,5 @@
 from decimal import Decimal
-from .base_extractor import BaseExtractor, TransactionData
+from .base_extractor import BaseExtractor, EmailContent, TransactionData
 import re
 import datetime
 
@@ -10,14 +10,14 @@ class BriExtractor(BaseExtractor):
         """
         return email_from == "noreply@bri.co.id" and "Berhasil" in title
 
-    def extract(self, title: str, email_from: str, email: str) -> list[TransactionData]:
+    def extract(self, content: EmailContent) -> list[TransactionData]:
         """
         Extract payment details based on the email title and content.
         """
-        if "Top Up" in title:
-            return self._extract_top_up(email, title)
-        elif "Pembelian" in title or "Pembayaran" in title or "Pemindahan Dana" in title:
-            return self._extract_transfer(email, title)
+        if "Top Up" in content.title:
+            return self._extract_top_up(content.get_plaintext(), content.title)
+        elif "Pembelian" in content.title or "Pembayaran" in content.title or "Pemindahan Dana" in content.title:
+            return self._extract_transfer(content.get_plaintext(), content.title)
         else:
             raise ValueError("Unknown BRI email format")
 

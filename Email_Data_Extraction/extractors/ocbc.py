@@ -1,5 +1,5 @@
 from decimal import Decimal
-from .base_extractor import BaseExtractor, TransactionData
+from .base_extractor import BaseExtractor, EmailContent, TransactionData
 import re
 import datetime
 
@@ -10,10 +10,11 @@ class OcbcExtractor(BaseExtractor):
         """
         return title in ["Successful Bill Payment", "TRANSFER DANA MASUK BI-FAST"] and email_from in ["callcenter@ocbcnisp.com", "noreply@ocbcnisp.com"]
 
-    def extract(self, title: str, email_from: str, email: str) -> list[TransactionData]:
+    def extract(self, content: EmailContent) -> list[TransactionData]:
         """
         Extract payment details from the OCBC email content.
         """
+        email = content.get_plaintext()
         transactions = []
         
         # Extract from Format 1

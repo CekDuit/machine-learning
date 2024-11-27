@@ -1,5 +1,5 @@
 from decimal import Decimal
-from base_extractor import BaseExtractor, TransactionData
+from .base_extractor import BaseExtractor, EmailContent, TransactionData
 import re
 import datetime
 
@@ -8,7 +8,8 @@ class JagoExtractor(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
         return "Kamu telah membayar" in title and email_from == "noreply@jago.com"
 
-    def extract(self, title: str, email_from: str, email: str) -> list[TransactionData]:
+    def extract(self, content: EmailContent) -> list[TransactionData]:
+        email = content.get_plaintext()
         # Example format:
         # Dari           MA • 1039984xxxxx
         # Ke             DODO

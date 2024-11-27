@@ -1,2 +1,3 @@
 title-classification-ds/**/*
-!title-classification-ds/.gitkeep
+dumped/**/*
+!**/.gitkeep
