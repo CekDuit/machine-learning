@@ -1,70 +1,77 @@
-from decimal import Decimal
-from .base_extractor import BaseExtractor, TransactionData
 import re
+from decimal import Decimal
 import datetime
+from .base_extractor import BaseExtractor, EmailContent, TransactionData
 
 class XsollaExtractor(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
         """
-        Check if the email matches the Xsolla transaction receipt format.
+        Check if the email matches the Xsolla purchase format.
         """
-        return email_from == "mailer@xsolla" and "Your receipt" in title
+        return email_from == "mailer@xsolla.com" and "Your Receipt No." in title
     
-    def _extract_title(self, email: str, title: str) -> list[TransactionData]:
+    def extract(self, content: EmailContent) -> list[TransactionData]:
         """
-        Extract payment details based on the email title and content.
+        Extract the transaction data from the email.
         """
-        if "receipt" in title:
-            return self._extract_payment(email, title)
-        else:
-            raise ValueError("Unknown Xsolla email format")
-        
-    def _extract_payment(self, email: str, title: str) -> list[TransactionData]:
-        """
-        Extract details for the payment format.
-        """
+        email = content.get_plaintext()
+
+        # Clean up email content (replace multiple spaces and newlines with a single space)
+        email = re.sub(r"\s+", " ", email)
+
+        # Debugging: Print cleaned-up email content to verify
+        print("Cleaned email content:")
+        print(email)
+        print("\n" + "-"*50 + "\n")
+
         trx = TransactionData()
-        trx.currency = "IDR"
-        
-        # Extract general fields
+        trx.is_incoming = False
+        trx.payment_method = "Xsolla"
+        trx.extra_data = {}
 
-        # Extract merchant name (flexible regex for various merchant names)
-        merchant_match = re.search(r"Product -\s*([^\n]+)", email)
-        trx.merchant = merchant_match.group(1) if merchant_match else "Unknown Merchant"
+        # Extract product name
+        product_match = re.search(r"Product\s*-\s*(.*?)\s*Company", email)
+        if product_match:
+            trx.description = product_match.group(1).strip()
 
-        # Flexible regex for Transaction number, allowing for different formatting or punctuation
-        ref_match = re.search(r"Transaction\s*(?:number|ID)?\s*[:\-]?\s*(\S+)", email)
-        if ref_match:
-            trx.trx_id = ref_match.group(1)
-        else:
-            raise ValueError("Transaction reference number not found in email")
-        
-        date_match = re.search(r"Transaction date\s*[:\-]?\s*(\d{2}/\d{2}/\d{4})", email)
+        # Extract company name
+        company_match = re.search(r"Company\s*(.*?)\s*Transaction number", email)
+        if company_match:
+            trx.merchant = company_match.group(1).strip()
+
+        # Extract transaction number
+        trx_id_match = re.search(r"Transaction number\s*(\d+)", email)
+        if trx_id_match:
+            trx.trx_id = trx_id_match.group(1)
+
+        # Extract transaction date
+        date_match = re.search(r"Transaction date\s*(\d{2}/\d{2}/\d{4})", email)
         if date_match:
-            print(f"Date found: {date_match.group(1)}")  # Debug print
             trx.date = datetime.datetime.strptime(date_match.group(1), "%m/%d/%Y")
-        else:
-            print(f"Date not found in email: {email}")  # Debug print for email content
-            raise ValueError("Date not found in email")
 
-        # Extract description
-        desc_match = re.search(r"Purchase description \s*(.+)", email)
-        trx.description = desc_match.group(1) if desc_match else "Unknown Description"
+        # Extract order ID
+        order_id_match = re.search(r"Order Id\s*(\S+)", email)
+        if order_id_match:
+            trx.extra_data["order_id"] = order_id_match.group(1)
 
-        # Extract payment details (Total amount)
-        total_match = re.search(r"Subtotal\s*Rp\s*([\d\s,]+(?:\.\d{1,2})?)", email)
+        # Extract country
+        country_match = re.search(r"Country\s*(.*?)\s*\* *\*", email)
+        if country_match:
+            trx.extra_data["country"] = country_match.group(1).strip()
+
+        # Extract subtotal
+        subtotal_match = re.search(r"Subtotal\s*(Rp[\d,\.]+)", email)
+        if subtotal_match:
+            trx.subtotal = Decimal(subtotal_match.group(1).replace("Rp", "").replace(",", "").strip())
+
+        # Extract total
+        total_match = re.search(r"Total\s*(Rp[\d,\.]+)", email)
         if total_match:
-            print(f"Amount found: {total_match.group(1)}")  # Debugging print
-            amount_str = total_match.group(1)
-            # Remove spaces or commas to normalize the number format before conversion to Decimal
-            amount_str = amount_str.replace(" ", "").replace(",", "")
-            print(f"Amount after cleaning: {amount_str}")  # Debugging print
-            trx.amount = Decimal(amount_str)
-        else:
-            raise ValueError("Total amount (Subtotal) not found in email")
-        
-        fees_match = re.search(r"Including 11% VAT : \s*([\d\.]+)", email)
-        if fees_match:
-            trx.fees = Decimal(fees_match.group(1))
-        
+            trx.amount = Decimal(total_match.group(1).replace("Rp", "").replace(",", "").strip())
+
+        # Extract VAT amount
+        vat_match = re.search(r"Including\s*(\d+)%\s*VAT\s*:\s*(Rp[\d,\.]+)", email)
+        if vat_match:
+            trx.extra_data["vat_amount"] = Decimal(vat_match.group(2).replace("Rp", "").replace(",", "").strip())
+
         return [trx]
