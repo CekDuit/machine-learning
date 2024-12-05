@@ -421,3 +421,22 @@
 # """
 
 # print(str(GoFoodExtractor().extract(data)[0]))
+
+
+# from itemku import ItemkuExtractor
+
+# # Contoh email
+# data = """
+# You've earned itemku Points
+# Akun pubg lvl 10 up + gmail + victor (PUBG Mobile Indonesia)
+# Subtotal: Rp 15.000
+# Biaya Layanan QRIS - QR CODE: Rp 1.107
+# Total: Rp 16.107
+# Account name: Fransiscuscus Xaverius Surya Darmawan
+# Invoice: TR00128200657
+# Date issued: 12 Aug, 2024 @ 23:43:54
+# Total: Rp 16.107
+# Payment method: QRIS
+# """
+
+# print(str(ItemkuExtractor().extract(data)[0]))
