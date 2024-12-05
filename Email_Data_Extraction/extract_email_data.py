@@ -17,6 +17,7 @@ import html2text
 import base64
 import csv
 
+from extractors.gotagihan import GoTagihanExtractor
 from extractors.google_play import GooglePlayExtractor
 from extractors.grab import GrabExtractor
 from extractors.itemku import ItemkuExtractor
@@ -55,6 +56,7 @@ exs: list[BaseExtractor] = [
     SteamExtractor(),
     UniPinExtractor(),
     XsollaExtractor(),
+    GoTagihanExtractor(),
 ]
 
 import email
@@ -190,7 +192,7 @@ async def fetch_email_data(gmail, message_id) -> list[TransactionData]:
                 raise e
 
 
-async def extract_tx(gmail, page_token=None):
+async def extract_tx(gmail, w: csv.DictWriter, page_token=None):
     async with Aiogoogle(user_creds=user_creds, client_creds=client_creds) as aiogoogle:
         response = await aiogoogle.as_user(
             gmail.users.messages.list(userId="me", maxResults=500, pageToken=page_token)
@@ -209,6 +211,13 @@ async def extract_tx(gmail, page_token=None):
             tasks = [fetch_email_data(gmail, message["id"]) for message in chunk]
             chunk_txs = await asyncio.gather(*tasks)
             txs.extend(tx for txs in chunk_txs for tx in txs)
+            
+            # Write to disk
+            for tx in txs:
+                if tx.is_proper():
+                    w.writerow(tx.to_formatted_dict())
+                else:
+                    print(f"Transaction {tx} is not proper")
 
             # Sleep to prevent hitting the rate limit (Gmail API limits to 50 requests per second for message.get)
             await asyncio.sleep(1)
@@ -218,31 +227,27 @@ async def extract_tx(gmail, page_token=None):
 
 async def main():
     start_time = datetime.datetime.now()
+    with open("email-extract.csv", "w", newline='') as f:
+        fieldnames = ["Datetime", "Merchant Name", "Sub Category", "Category", "Amount", "Currency", "Transaction Type", "Payment Method", "Transaction ID", "Notes"]
+        w = csv.DictWriter(f, fieldnames=fieldnames)
+        w.writeheader()
 
-    async with Aiogoogle(user_creds=user_creds, client_creds=client_creds) as aiogoogle:
-        gmail = await aiogoogle.discover("gmail", "v1")
+        async with Aiogoogle(user_creds=user_creds, client_creds=client_creds) as aiogoogle:
+            gmail = await aiogoogle.discover("gmail", "v1")
 
-        extract_limit = 50
-        extracted_count = 0
-        all_titles = []
-        next_page_token = None
+            extract_limit = 50
+            extracted_count = 0
+            next_page_token = None
 
-        while extracted_count < extract_limit:
-            titles, next_page_token = await extract_tx(gmail, next_page_token)
-            all_titles.extend(titles)
-            extracted_count += len(titles)
+            while extracted_count < extract_limit:
+                titles, next_page_token = await extract_tx(gmail, w, next_page_token)
+                extracted_count += len(titles)
 
-            if next_page_token is None or extracted_count >= extract_limit:
-                break
+                if next_page_token is None or extracted_count >= extract_limit:
+                    break
 
-            print(f"Extracted {extracted_count}/{extract_limit} emails so far...")
-            print(f"Time elapsed: {datetime.datetime.now() - start_time} seconds")
-
-        print(all_titles[:10])
-
-        # Turn into a CSV and download
-        df = pd.DataFrame(all_titles, columns=["title"])
-        df.to_csv("email-extract.csv", index=False)
+                print(f"Extracted {extracted_count}/{extract_limit} emails so far...")
+                print(f"Time elapsed: {datetime.datetime.now() - start_time} seconds")
 
 
 # Run the main function
