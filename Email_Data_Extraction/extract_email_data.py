@@ -17,6 +17,7 @@ import html2text
 import base64
 import csv
 
+from extractors.tokopedia import TokopediaExtractor
 from extractors.grabfood import GrabFoodExtractor
 from extractors.gotagihan import GoTagihanExtractor
 from extractors.google_play import GooglePlayExtractor
@@ -59,6 +60,7 @@ exs: list[BaseExtractor] = [
     XsollaExtractor(),
     GoTagihanExtractor(),
     GrabFoodExtractor(),
+    TokopediaExtractor()
 ]
 
 import email
@@ -238,7 +240,7 @@ async def main():
         async with Aiogoogle(user_creds=user_creds, client_creds=client_creds) as aiogoogle:
             gmail = await aiogoogle.discover("gmail", "v1")
 
-            extract_limit = 50
+            extract_limit = 10000
             extracted_count = 0
             next_page_token = None
 
