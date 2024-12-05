@@ -6,7 +6,10 @@ import datetime
 
 class JagoExtractor(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
-        return "Kamu telah membayar" in title and email_from == "noreply@jago.com"
+        return (
+        "kamu telah membayar" in title.lower() and
+        "noreply@jago.com" in email_from.lower()
+    )
 
     def extract(self, content: EmailContent) -> list[TransactionData]:
         email = content.get_plaintext()
@@ -29,14 +32,17 @@ class JagoExtractor(BaseExtractor):
         trx.currency = currency_amount_match.group(1).strip()
         if trx.currency == "Rp":
             trx.currency = "IDR"
-        trx.amount = Decimal(amount.replace(",", ""))
+        trx.amount = Decimal(amount.replace(".", ""))
 
-        trx.description = "Bank Jago Transaction"  # Gak ada deskripsi di bank jago
-        trx.merchant = re.search(r"Ke\s*:\s*(.+)", email).group(1)
-        date_str = re.search(r"Tanggal transaksi\s*:\s*(.+)", email).group(1)
-        trx.date = datetime.datetime.strptime(
-            date_str.replace(" WIB", ""), "%d %B %Y %H:%M"
-        )
+        trx.description = ""  # Gak ada deskripsi di bank jago
+        merchant_match = re.search(r"Ke\s*(.+)", email)
+        trx.merchant = merchant_match.group(1)
+
+        date_match = re.search(r"Tanggal transaksi\s*(\d{1,2} \w+ \d{4} \d{2}:\d{2})", email)
+        date_str = date_match.group(1)
+        date_str = re.sub(r'\s+[A-Za-z]+$', '', date_str)
+        trx.date = datetime.datetime.strptime(date_str, "%d %B %Y %H:%M")
+
         trx.trx_id = trx.date.strftime("%Y%m%d%H%M")
 
         return [trx]
