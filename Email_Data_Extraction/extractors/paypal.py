@@ -1,5 +1,5 @@
 from decimal import Decimal
-from base_extractor import BaseExtractor, EmailContent, TransactionData
+from .base_extractor import BaseExtractor, EmailContent, TransactionData
 import re
 import datetime
 import locale
@@ -10,7 +10,7 @@ class PaypalExtractor(BaseExtractor):
         return "Paypal" in title.lower() and "service@intl.paypal.com" in email_from.lower()
 
     def extractPembayaran(self, content: EmailContent) -> list[TransactionData]:
-        email = content
+        email = content.get_plaintext()
         # Example format:
         # Anda mengirim $2,00 USD ke asukti
         # CATATAN ANDA UNTUK asukti asukti
@@ -47,7 +47,7 @@ class PaypalExtractor(BaseExtractor):
         return [trx]
     
     def extractPenerimaan(self, content: EmailContent) -> list[TransactionData]:
-        email = content
+        email = content.get_plaintext()
         # Example format:
         # Run Jie Soo telah mengirim $2,50 USD kepada Anda
         # Perincian Transaksi
@@ -80,7 +80,7 @@ class PaypalExtractor(BaseExtractor):
         return [trx]
 
     def extract(self, content: EmailContent) -> list[TransactionData]:
-        email = content
+        email = content.get_plaintext()
         if "Data_Transfer" in email:
             return [self.extractPembayaran(email)]
         elif "Data_Terima" in email:
