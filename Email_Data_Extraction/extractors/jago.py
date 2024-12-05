@@ -26,6 +26,7 @@ class JagoExtractor(BaseExtractor):
             r"Jumlah\s*:?[\s]*([A-Za-z]+)\s*([\d,\.]+)", email
         )
         trx.currency, amount = currency_amount_match.groups()
+        trx.currency = currency_amount_match.group(1).strip()
         if trx.currency == "Rp":
             trx.currency = "IDR"
         trx.amount = Decimal(amount.replace(",", ""))
