@@ -17,6 +17,7 @@ import html2text
 import base64
 import csv
 
+from extractors.grabfood import GrabFoodExtractor
 from extractors.gotagihan import GoTagihanExtractor
 from extractors.google_play import GooglePlayExtractor
 from extractors.grab import GrabExtractor
@@ -57,6 +58,7 @@ exs: list[BaseExtractor] = [
     UniPinExtractor(),
     XsollaExtractor(),
     GoTagihanExtractor(),
+    GrabFoodExtractor(),
 ]
 
 import email
@@ -168,12 +170,13 @@ async def fetch_email_data(gmail, message_id) -> list[TransactionData]:
             content = EmailContent(data)
             
             # Extract transactions
-            try:
-                for ex in exs:
+            
+            for ex in exs:
+                try:
                     if ex.match(content.title, content.from_email):
                         trxs.extend(ex.extract(content))
-            except Exception as e:
-                print(f"Error while extracting transactions for {subject} from:{from_domain}: {e}")
+                except Exception as e:
+                    print(f"Error while extracting transactions for {subject} from:{from_domain}: {e}")
 
             if not trxs:
                 dump_path = f"dumped/{from_domain}-{message_id}.eml"
