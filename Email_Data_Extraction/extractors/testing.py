@@ -218,97 +218,133 @@
 #for trx in OVOExtractor().extract(data):
 #    print(trx)
 
-from extractors.eg import EGExtractor
+# from extractors.eg import EGExtractor
 
-data_payment = """
-Thank You.
-Hi Darius!
-Thank you for your purchase!
+# data_payment = """
+# Thank You.
+# Hi Darius!
+# Thank you for your purchase!
 
-INVOICE ID:     F3714270093
-YOUR ORDER INFORMATION:
-Order ID:       F2409060937042320           
-Bill To:        dariusmputra@gmail.com
-Order Date:     September 6, 2024
-Source: Epic Games Store
-HERE'S WHAT YOU ORDERED:
-Description:    Sniper Ghost Warrior Contracts
-Publisher:      CI Games
-Price:	        Rp224980.00 IDR
-Discounts:	
-Sale Discount	- Rp224980.00 IDR
-TOTAL:	Rp0.00 IDR
-"""
+# INVOICE ID:     F3714270093
+# YOUR ORDER INFORMATION:
+# Order ID:       F2409060937042320           
+# Bill To:        dariusmputra@gmail.com
+# Order Date:     September 6, 2024
+# Source: Epic Games Store
+# HERE'S WHAT YOU ORDERED:
+# Description:    Sniper Ghost Warrior Contracts
+# Publisher:      CI Games
+# Price:	        Rp224980.00 IDR
+# Discounts:	
+# Sale Discount	- Rp224980.00 IDR
+# TOTAL:	Rp0.00 IDR
+# """
 
-# Print the extracted transactions
-print("\nEpic Games Transaction Details:")
-title = "Your Epic Games Receipt"
-for trx in EGExtractor()._extract_title(data_payment, title):
-    print(trx)
-
-
-from extractors.unipin import UniPinExtractor
-
-data = """
-Terima Kasih Atas Pembelian Anda! :)
-Nomor Transaksi	S1923922317
-Tipe Voucher	33 Garena Shells
-Nominal Transaksi	IDR 10.000 (with VAT)
-Voucher	Serial : 142252201
-PIN : 4476300011238140
-"""
-
-# Print the extracted transactions
-print("\nUniPin Transaction Details:")
-title = "UniPin::Voucher Receipt"
-for trx in UniPinExtractor()._extract_title(data, title):
-    print(trx)
+# # Print the extracted transactions
+# print("\nEpic Games Transaction Details:")
+# title = "Your Epic Games Receipt"
+# for trx in EGExtractor()._extract_title(data_payment, title):
+#     print(trx)
 
 
-from extractors.mobapay import MobaPayExtractor
+# from extractors.unipin import UniPinExtractor
 
-data = """
-Payment Successful
-Order No.:	1621806413359710208
-Username:	One Autumn Leaf
-Game ID:	101839969(2225)
-Email:	dariusmputra@gmail.com
-Payment Time:	2023-02-04 09:42:51 (UTC)
-Amount:	1
-Item Name:	40 Diamond + 4 Bonus
-Currency:	IDR
-Region:	ID
-Price:	12.000..00 IDR
-Payment Methods:	Unipin ShopeePay Wallet
-Subtotal:	12.000..00 IDR
-"""
+# data = """
+# Terima Kasih Atas Pembelian Anda! :)
+# Nomor Transaksi	S1923922317
+# Tipe Voucher	33 Garena Shells
+# Nominal Transaksi	IDR 10.000 (with VAT)
+# Voucher	Serial : 142252201
+# PIN : 4476300011238140
+# """
 
-print("\nMobaPay Transaction Details:")
-title = "Payment Successful"
-for trx in MobaPayExtractor()._extract_title(data, title):
-    print(trx)
+# # Print the extracted transactions
+# print("\nUniPin Transaction Details:")
+# title = "UniPin::Voucher Receipt"
+# for trx in UniPinExtractor()._extract_title(data, title):
+#     print(trx)
 
 
-from extractors.xsolla import XsollaExtractor
+# from extractors.mobapay import MobaPayExtractor
 
-data = """
-Purchase Confirmation
-Product - Epic Games Commerce GmbH
-Company	Xsolla (USA), Inc.
-15260 Ventura Boulevard, Suite 2230, Sherman Oaks, California, 91403
-TIN 33.001.301.2-053.000
-Transaction number	1545704795
-Transaction date	11/26/2024
-Purchase description	Watch Dogs: Legion Deluxe Edition
-Order Id	A2411260937452527
-Country	Indonesia
-Subtotal	Rp103 254.00
-TotalRp103 254.00
-Including 11% VAT : Rp10 233.00
-Thank you for using Xsolla!
-"""
+# data = """
+# Payment Successful
+# Order No.:	1621806413359710208
+# Username:	One Autumn Leaf
+# Game ID:	101839969(2225)
+# Email:	dariusmputra@gmail.com
+# Payment Time:	2023-02-04 09:42:51 (UTC)
+# Amount:	1
+# Item Name:	40 Diamond + 4 Bonus
+# Currency:	IDR
+# Region:	ID
+# Price:	12.000..00 IDR
+# Payment Methods:	Unipin ShopeePay Wallet
+# Subtotal:	12.000..00 IDR
+# """
 
-print("\nXsolla Transaction Details:")
-title = "Your receipt"
-for trx in XsollaExtractor()._extract_title(data, title):
-    print(trx)
+# print("\nMobaPay Transaction Details:")
+# title = "Payment Successful"
+# for trx in MobaPayExtractor()._extract_title(data, title):
+#     print(trx)
+
+
+# from extractors.xsolla import XsollaExtractor
+
+# data = """
+# Purchase Confirmation
+# Product - Epic Games Commerce GmbH
+# Company	Xsolla (USA), Inc.
+# 15260 Ventura Boulevard, Suite 2230, Sherman Oaks, California, 91403
+# TIN 33.001.301.2-053.000
+# Transaction number	1545704795
+# Transaction date	11/26/2024
+# Purchase description	Watch Dogs: Legion Deluxe Edition
+# Order Id	A2411260937452527
+# Country	Indonesia
+# Subtotal	Rp103 254.00
+# TotalRp103 254.00
+# Including 11% VAT : Rp10 233.00
+# Thank you for using Xsolla!
+# """
+
+# print("\nXsolla Transaction Details:")
+# title = "Your receipt"
+# for trx in XsollaExtractor()._extract_title(data, title):
+#     print(trx)
+
+
+# from google_play import GooglePlayExtractor
+
+# # Contoh email
+# data = """
+# Order number: GPA.3335-0097-8360-50910
+# Order date: 2 Dec 2024 18:20:35 GMT+7
+# Your account: fxsurya27@gmail.com
+# Item            Price
+# True Premium (xxxxx) Rp 39.000,00/month
+# Auto-renewing subscription
+# Tax: Rp 2.090,00
+# Total: Rp 41.090,00/month
+# Payment method: ShopeePay: **** 6235
+# """
+
+# print(str(GooglePlayExtractor().extract(data)[0]))
+
+
+# from google_play import GooglePlayExtractor
+
+# # Contoh email
+# data = """
+# Order number: GPA.3335-0097-8360-50910
+# Order date: 2 Dec 2024 18:20:35 GMT+7
+# Your account: fxsurya27@gmail.com
+# Item            Price
+# True Premium (xxxxx) Rp 39.000,00/month
+# Auto-renewing subscription
+# Tax: Rp 2.090,00
+# Total: Rp 41.090,00/month
+# Payment method: ShopeePay: **** 6235
+# """
+
+# print(str(GooglePlayExtractor().extract(data)[0]))
