@@ -19,11 +19,11 @@ import csv
 
 from extractors.grab import GrabExtractor
 from extractors.base_extractor import BaseExtractor, EmailContent, TransactionData
-from extractors.bri import BriExtractor
+from extractors.bri import BRIExtractor
 from extractors.jago import JagoExtractor
 from extractors.livin import MandiriExtractor
 from extractors.mybca import MyBCAExtrator
-from extractors.ocbc import OcbcExtractor
+from extractors.ocbc import OCBCExtractor
 from extractors.ovo import OVOExtractor
 from extractors.seabank import SeaBankExtractor
 
