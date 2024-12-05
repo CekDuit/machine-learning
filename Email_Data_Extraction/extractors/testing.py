@@ -332,19 +332,38 @@
 # print(str(GooglePlayExtractor().extract(data)[0]))
 
 
-# from google_play import GooglePlayExtractor
+# from paypal import PaypalExtractor
 
 # # Contoh email
 # data = """
-# Order number: GPA.3335-0097-8360-50910
-# Order date: 2 Dec 2024 18:20:35 GMT+7
-# Your account: fxsurya27@gmail.com
-# Item            Price
-# True Premium (xxxxx) Rp 39.000,00/month
-# Auto-renewing subscription
-# Tax: Rp 2.090,00
-# Total: Rp 41.090,00/month
-# Payment method: ShopeePay: **** 6235
+# Data_Transfer
+# Anda mengirim $2,00 USD ke asukti
+# CATATAN ANDA UNTUK asukti asukti
+# “Transfer Jajan”
+# Perincian Transaksi
+# ID transaksi: 49S77625NF073893R
+# Tanggal transaksi: 1 Mei 2023
+# Pembayaran terkirim: $2,00 USD
+# Biaya: $0,00 USD
+# Dibayar dengan: Saldo PayPal (USD)
+# Anda membayar: $2,00 USD
 # """
 
-# print(str(GooglePlayExtractor().extract(data)[0]))
+# print(str(PaypalExtractor().extract(data)[0]))
+
+
+# from paypal import PaypalExtractor
+
+# # Contoh email
+# data = """
+# Data_Terima
+# Run Jie Soo telah mengirim $2,50 USD kepada Anda
+# Perincian Transaksi
+# ID transaksi: 1JE26965PL263253S
+# Tanggal transaksi: 12 Mei 2023
+# Jumlah yang diterima: $2,50 USD
+# Biaya: $0,41 USD
+# Total: $2,09 USD
+# """
+
+# print(str(PaypalExtractor().extract(data)[0]))
