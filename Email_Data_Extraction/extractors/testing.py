@@ -391,3 +391,33 @@
 # """
 
 # print(str(SteamExtractor().extract(data)[0]))
+
+
+# from gofood import GoFoodExtractor
+
+# # Contoh email
+# data = """
+# gofood
+# Wednesday, 2 August 2023
+# Order ID: F-2178695239
+# Hi KIKO,
+# Thanks for ordering GoFood
+# Total paid: Rp57.000
+# Order details:
+# 3 Mie Gacoan IV 0 @Rp14.000 Rp42.000
+# 1 Udang Rambutan @Rp13.000 Rp13.000
+# Total Price: Rp55.000
+# Delivery fee: Rp13.000
+# Other fee(s): Rp3.000
+# Discounts: -Rp14.000
+# Total payment: Rp57.000
+# Paid with GoPay: Rp50.000
+# Paid with Cash: Rp7.000
+# Delivery details:
+# Zainur Rahman
+# Delivered on 2 August 2023 at 13:47
+# Distance: 3.9 km
+# Delivery time: 45 mins
+# """
+
+# print(str(GoFoodExtractor().extract(data)[0]))
