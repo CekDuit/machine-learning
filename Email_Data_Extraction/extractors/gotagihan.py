@@ -5,7 +5,7 @@ import datetime
 
 class GoTagihanExtractor(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
-        return title == "GoTagihan Receipts" or ("GoPay" in "title" and ("Payment Receipt" in title or "Bukti Pembayaran" in title)) and email_from == "receipts@gotagihan.gojek.com"
+        return email_from == "receipts@gotagihan.gojek.com"
 
     def extract(self, content: EmailContent) -> list[TransactionData]:
         c = content.get_dfs(thousands=".", decimal=",")
@@ -23,11 +23,15 @@ class GoTagihanExtractor(BaseExtractor):
         trx.currency = merged_amount[:first_num_idx]
         trx.amount = Decimal(merged_amount[first_num_idx:].replace(".", "").replace(",", ""))
 
-        trx.trx_id = re.search(r"Payment ID - (.+\-GOBILLS)", pt).group(0)
+        trx.trx_id = re.search(r"(?:Payment ID|ID Pembayaran) - (.+\-GOBILLS)", pt).group(0)
         trx.description = ""
-        trx.date = datetime.datetime.strptime(
-            str(c[0].loc[0][1]),
-            "%d %b %Y, %H:%M",
-        )
+        try:
+            trx.date = datetime.datetime.strptime(
+                str(c[0].loc[0][1]),
+                "%d %b %Y, %H:%M",
+            )
+        except ValueError:
+            date_str = re.search(r"(\d{2} \w+ \d{4}, \d{2}:\d{2})", pt).group(0)
+            trx.date = datetime.datetime.strptime(date_str, "%d %b %Y, %H:%M")
         
         return [trx]
