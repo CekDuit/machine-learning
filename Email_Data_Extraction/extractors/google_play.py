@@ -9,7 +9,7 @@ class GooglePlayExtractor(BaseExtractor):
         return "Google Play" in title.lower() and "google.com" in email_from.lower()
 
     def extract(self, content: EmailContent) -> list[TransactionData]:
-        email = content
+        email = content.get_plaintext()
         # Example format:
         # Order number: GPA.3335-0097-8360-50910
         # Order date: 2 Dec 2024 18:20:35 GMT+7
