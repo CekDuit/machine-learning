@@ -17,25 +17,44 @@ import html2text
 import base64
 import csv
 
+from extractors.google_play import GooglePlayExtractor
 from extractors.grab import GrabExtractor
-from extractors.base_extractor import BaseExtractor, EmailContent, TransactionData
-from extractors.bri import BRIExtractor
+from extractors.itemku import ItemkuExtractor
 from extractors.jago import JagoExtractor
-from extractors.livin import MandiriExtractor
+from extractors.mobapay import MobaPayExtractor
 from extractors.mybca import MyBCAExtrator
 from extractors.ocbc import OCBCExtractor
 from extractors.ovo import OVOExtractor
+from extractors.paypal import PaypalExtractor
 from extractors.seabank import SeaBankExtractor
+from extractors.steam import SteamExtractor
+from extractors.unipin import UniPinExtractor
+from extractors.xsolla import XsollaExtractor
+from extractors.gofood import GoFoodExtractor
+from extractors.base_extractor import BaseExtractor, EmailContent, TransactionData
+from extractors.bri import BRIExtractor
+from extractors.eg import EGExtractor
+
+
 
 exs: list[BaseExtractor] = [
-    BriExtractor(),
+    BRIExtractor(),
+    EGExtractor(),
+    GoFoodExtractor(),
+    GooglePlayExtractor(),
+    GrabExtractor(),
+    ItemkuExtractor(),
     JagoExtractor(),
-    MandiriExtractor(),
+    UniPinExtractor(),
+    MobaPayExtractor(),
     MyBCAExtrator(),
-    OcbcExtractor(),
+    OCBCExtractor(),
     OVOExtractor(),
+    PaypalExtractor(),
     SeaBankExtractor(),
-    GrabExtractor()
+    SteamExtractor(),
+    UniPinExtractor(),
+    XsollaExtractor(),
 ]
 
 import email
