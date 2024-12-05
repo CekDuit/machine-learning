@@ -26,6 +26,7 @@ class GrabExtractor(BaseExtractor):
         trx = TransactionData()
         trx.is_incoming = False
         trx.amount = Decimal(str(dfs[8].iloc[0][1]))
+        trx.merchant = "Grab"
         trx.payment_method = dfs[10].iloc[0][1]
         trx.currency = "IDR"
         trx.description = "GrabCar Trip"
