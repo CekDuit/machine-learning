@@ -154,9 +154,23 @@ async def fetch_email_data(gmail, message_id) -> list[TransactionData]:
                 (header["value"] for header in headers if header["name"] == "From"), ""
             )
             from_domain = extract_domain(from_email)
+            
+            # Check is transaction email or not frome existing extractors
+            is_tx = False
+            
+            for ex in exs:
+                try:
+                    if ex.match(subject, from_email):
+                        is_tx = True
+                        break
+                except Exception as ex:
+                    print(f"Error while matching {subject} from:{from_domain} with {ex}")
 
             # Classify the email title
-            [is_tx] = tc.predict([subject])
+            if not is_tx:
+                [pred_tx] = tc.predict([f"{subject} from:{from_domain}"])
+                is_tx = pred_tx
+                
             if not is_tx:
                 return []
 
@@ -191,7 +205,7 @@ async def fetch_email_data(gmail, message_id) -> list[TransactionData]:
         except HTTPError as e:
             if e.res.status_code == 429:
                 print("Rate limit exceeded, waiting...")
-                await asyncio.sleep(random.uniform(1, 10))
+                await asyncio.sleep(random.uniform(1, 3))
                 return await fetch_email_data(gmail, message_id)
             else:
                 raise e
@@ -210,8 +224,10 @@ async def extract_tx(gmail, w: csv.DictWriter, page_token=None):
         if not messages:
             return txs, next_page_token, 0
 
-        chunk_size = 48
+        chunk_size = 100
         for i in range(0, len(messages), chunk_size):
+            throttle_start = datetime.datetime.now()
+            
             chunk = messages[i : i + chunk_size]
             tasks = [fetch_email_data(gmail, message["id"]) for message in chunk]
             chunk_txs = await asyncio.gather(*tasks)
@@ -224,8 +240,10 @@ async def extract_tx(gmail, w: csv.DictWriter, page_token=None):
                 else:
                     print(f"Transaction {tx} is not proper")
 
+            sleep_seconds = 1.5 - (datetime.datetime.now() - throttle_start).total_seconds()
+            
             # Sleep to prevent hitting the rate limit (Gmail API limits to 50 requests per second for message.get)
-            await asyncio.sleep(1)
+            await asyncio.sleep(sleep_seconds if sleep_seconds > 0 else 0)
 
     return txs, next_page_token, len(messages)
 
