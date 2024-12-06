@@ -208,7 +208,7 @@ async def extract_tx(gmail, w: csv.DictWriter, page_token=None):
         txs = []
 
         if not messages:
-            return txs, next_page_token
+            return txs, next_page_token, 0
 
         chunk_size = 48
         for i in range(0, len(messages), chunk_size):
@@ -218,7 +218,7 @@ async def extract_tx(gmail, w: csv.DictWriter, page_token=None):
             txs.extend(tx for txs in chunk_txs for tx in txs)
             
             # Write to disk
-            for tx in txs:
+            for tx in [tx for txs in chunk_txs for tx in txs]:
                 if tx.is_proper():
                     w.writerow(tx.to_formatted_dict())
                 else:
@@ -227,7 +227,7 @@ async def extract_tx(gmail, w: csv.DictWriter, page_token=None):
             # Sleep to prevent hitting the rate limit (Gmail API limits to 50 requests per second for message.get)
             await asyncio.sleep(1)
 
-    return txs, next_page_token
+    return txs, next_page_token, len(messages)
 
 
 async def main():
@@ -245,8 +245,8 @@ async def main():
             next_page_token = None
 
             while extracted_count < extract_limit:
-                titles, next_page_token = await extract_tx(gmail, w, next_page_token)
-                extracted_count += len(titles)
+                titles, next_page_token, processed_count = await extract_tx(gmail, w, next_page_token)
+                extracted_count += processed_count
 
                 if next_page_token is None or extracted_count >= extract_limit:
                     break
