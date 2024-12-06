@@ -6,7 +6,7 @@ import datetime
 
 class GooglePlayExtractor(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
-        return "Google Play" in title.lower() and "google.com" in email_from.lower()
+        return "google play order" in title.lower() and "googleplay-noreply@google.com" in email_from.lower()
 
     def extract(self, content: EmailContent) -> list[TransactionData]:
         email = content.get_plaintext()
@@ -30,15 +30,20 @@ class GooglePlayExtractor(BaseExtractor):
         trx.currency = currency_amount_match.group(1).strip()
         if trx.currency == "Rp":
             trx.currency = "IDR"
+        else:
+            trx.currency = trx.currency  
         amount = currency_amount_match.group(2)
         amount_cleaned = amount.replace(".", "").replace(",", ".")
-        trx.amount = Decimal(amount_cleaned)
+        trx.amount = int(Decimal(amount_cleaned)) 
 
         trx.description = ""  # Gak ada deskripsi di google play 
         trx.merchant = "Google Play"
+
         date_str = re.search(r"Order date\s*:\s*(.+)", email).group(1)
-        date_str_cleaned = re.sub(r"\s*GMT[^\s]*", "", date_str)
+        date_str_cleaned = re.sub(r"\s*GMT[\+\-]\d+", "", date_str).strip()
         trx.date = datetime.datetime.strptime(date_str_cleaned, "%d %b %Y %H:%M:%S")
-        trx.trx_id = trx.date.strftime("%Y%m%d%H%M")
+
+        order_number_match = re.search(r"Order number\s*:\s*(GPA\.\d{4}-\d{4}-\d{4}-\d{5})", email)
+        trx.trx_id = order_number_match.group(1)
 
         return [trx]
