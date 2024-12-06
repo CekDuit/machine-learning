@@ -7,7 +7,7 @@ import locale
 
 class SteamExtractor(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
-        return "Steam" in title.lower() and "noreply@steampowered.com" in email_from.lower()
+        return "steam purchase" in title.lower() and "noreply@steampowered.com" in email_from.lower()
 
     def extract(self, content: EmailContent) -> list[TransactionData]:
         email = content.get_plaintext()
@@ -35,14 +35,15 @@ class SteamExtractor(BaseExtractor):
         trx.payment_method = payment_method_match.group(1).strip()
 
         # Split per line and match
-        total_match = re.search(r"Total:\s*([A-Za-z]+)\s*([\d,\.]+)", email)
+        total_match = re.search(r"Your total for this transaction:\s*([A-Za-z]+)\s*([\d\s,\.]+)", email)
         trx.currency = total_match.group(1).strip()
-        amount = total_match.group(2).replace(".", "").replace(",", ".")
+
+        amount = total_match.group(2).replace(" ", "").replace(",", ".")
         trx.amount = Decimal(amount)
         if trx.currency == "Rp":
             trx.currency = "IDR"
 
-        description_match = ""
+        trx.description = ""
 
         trx.merchant = "Steam"
         
