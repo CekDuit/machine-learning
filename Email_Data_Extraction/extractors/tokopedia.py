@@ -25,7 +25,7 @@ class TokopediaExtractor(BaseExtractor):
         trx.amount = Decimal(amount.replace(".", "").replace(",", ""))
 
         trx.trx_id = re.search(r"No\. Invoice: (INV/[A-Z0-9/]+)\s+", pt).group(1)
-        trx.description = ""
+        trx.description = "Tokopedia"
 
         date_string = str(df[3].iloc[2, 1])
         for ind, eng in translations.items():
