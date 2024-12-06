@@ -37,6 +37,7 @@ from extractors.gofood import GoFoodExtractor
 from extractors.base_extractor import BaseExtractor, EmailContent, TransactionData
 from extractors.bri import BRIExtractor
 from extractors.eg import EGExtractor
+from extractors.livin import MandiriExtractor
 
 
 
@@ -60,7 +61,8 @@ exs: list[BaseExtractor] = [
     XsollaExtractor(),
     GoTagihanExtractor(),
     GrabFoodExtractor(),
-    TokopediaExtractor()
+    TokopediaExtractor(),
+    MandiriExtractor()
 ]
 
 import email

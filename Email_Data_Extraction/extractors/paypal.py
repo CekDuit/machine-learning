@@ -9,7 +9,10 @@ class PaypalExtractor(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
         valid_titles = [
             "anda mengirim pembayaran",
-            "anda telah menerima"
+            "anda telah menerima",
+            "you've received",
+            "you sent a payment",
+            "you have received",
         ]
         valid_emails = [
             "service@intl.paypal.com"
@@ -41,21 +44,30 @@ class PaypalExtractor(BaseExtractor):
         trx.payment_method = "Paypal"
 
         # Split per line and match
-        currency_amount_match = re.search(r"Pembayaran terkirim\s*\$(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)\s*(\w+)", email)
+        currency_amount_match = re.search(r"(?:Pembayaran terkirim|Payment sent)\s*\$(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)\s*(\w+)", email)
         trx.currency = currency_amount_match.group(2).strip()
         amount = currency_amount_match.group(1).replace(".", "").replace(",", ".")  
-        trx.amount = Decimal(amount) 
+        trx.amount = Decimal(amount)
 
-        description_match = re.search(r"CATATAN ANDA UNTUK.*?\n\s*\n\s*(.+?)\n", email, re.DOTALL)
+        description_match = re.search(r"(?:CATATAN ANDA UNTUK|YOUR NOTES FOR).*?\n\s*\n\s*(.+?)\n", email, re.DOTALL)
         trx.description = description_match.group(1).strip() if description_match else ""
 
         trx.merchant = "Paypal"
-        date_match = re.search(r"Tanggal transaksi\s*\n\s*(.+)", email)
+
+        date_match = re.search(r"(?:Tanggal transaksi|Transaction date)\s*\n\s*(.+)", email)
         date_str = date_match.group(1).strip()
-        locale.setlocale(locale.LC_TIME, 'id_ID.UTF-8')
+        bulan_map = {
+                "Januari": "January", "Februari": "February", "Maret": "March",
+                "April": "April", "Mei": "May", "Juni": "June",
+                "Juli": "July", "Agustus": "August", "September": "September",
+                "Oktober": "October", "November": "November", "Desember": "December"
+            }
+        for indo, eng in bulan_map.items():
+            date_str = date_str.replace(indo, eng)
+        
         trx.date = datetime.datetime.strptime(date_str, "%d %b %Y")
 
-        trx_id_match = re.search(r"ID transaksi\s*(\S+)", email)
+        trx_id_match = re.search(r"(?:ID transaksi|Transaction ID)\s*(\S+)", email)
         trx.trx_id = trx_id_match.group(1) if trx_id_match else None
 
         return [trx]
@@ -76,29 +88,38 @@ class PaypalExtractor(BaseExtractor):
         trx.payment_method = "Paypal"
 
         # Split per line and match
-        currency_amount_match = re.search(r"Jumlah yang diterima\s*\$(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)\s*(\w+)", email)
+        currency_amount_match = re.search(r"(?:Jumlah yang diterima|Amount received)\s*\$(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)\s*(\w+)", email)
         trx.currency = currency_amount_match.group(2).strip()
         amount = currency_amount_match.group(1).replace(".", "").replace(",", ".")  
-        trx.amount = Decimal(amount) 
+        trx.amount = Decimal(amount)
 
-        description_match = re.search(r"CATATAN.*?\n\s*\n\s*(.+?)\n", email, re.DOTALL)
+        description_match = re.search(r"(?:CATATAN|NOTED).*?\n\s*\n\s*(.+?)\n", email, re.DOTALL)
         trx.description = description_match.group(1).strip() if description_match else ""
 
         trx.merchant = "Paypal"
-        date_match = re.search(r"Tanggal transaksi\s*\n\s*(.+)", email)
+        
+        date_match = re.search(r"(?:Tanggal transaksi|Transaction date)\s*\n\s*(.+)", email)
         date_str = date_match.group(1).strip()
-        locale.setlocale(locale.LC_TIME, 'id_ID.UTF-8')
+        bulan_map = {
+                "Januari": "January", "Februari": "February", "Maret": "March",
+                "April": "April", "Mei": "May", "Juni": "June",
+                "Juli": "July", "Agustus": "August", "September": "September",
+                "Oktober": "October", "November": "November", "Desember": "December"
+            }
+        for indo, eng in bulan_map.items():
+            date_str = date_str.replace(indo, eng)
+         
         trx.date = datetime.datetime.strptime(date_str, "%d %b %Y")
 
-        trx_id_match = re.search(r"ID transaksi\s*(\S+)", email)
+        trx_id_match = re.search(r"(?:ID transaksi|Transaction ID)\s*(\S+)", email)
         trx.trx_id = trx_id_match.group(1) if trx_id_match else None
 
         return [trx]
 
     def extract(self, content: EmailContent) -> list[TransactionData]:
         email = content.get_plaintext()
-        if "Anda mengirim" in email:
+        if "anda mengirim" in email.lower() or "you sent" in email.lower():
             return self.extractPembayaran(email)
-        elif "Anda menerima " in email:
+        elif "anda menerima" in email.lower() or "you've received" in email.lower():
             return self.extractPenerimaan(email)
         return []
