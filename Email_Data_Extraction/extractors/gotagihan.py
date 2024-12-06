@@ -23,7 +23,7 @@ class GoTagihanExtractor(BaseExtractor):
         trx.currency = merged_amount[:first_num_idx]
         trx.amount = Decimal(merged_amount[first_num_idx:].replace(".", "").replace(",", ""))
 
-        trx.trx_id = re.search(r"(?:Payment ID|ID Pembayaran) - (.+\-GOBILLS)", pt).group(0)
+        trx.trx_id = re.search(r"(?:Payment ID|ID Pembayaran) - (.+\-GOBILLS)", pt).group(1)
         trx.description = ""
         try:
             trx.date = datetime.datetime.strptime(
