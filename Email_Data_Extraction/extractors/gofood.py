@@ -5,7 +5,20 @@ import datetime
 
 class GoFoodExtractor(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
-        return "Gojek" in title.lower() and "no-reply@invoicing.gojek.com" in email_from.lower()
+        valid_titles = [
+            "your food order",
+            "pesanan makanan anda"
+        ]
+        valid_emails = [
+            "no-reply@invoicing.gojek.com"
+            # "m320b4ky1551@bangkit.academy"
+        ]
+        is_title_valid = any(valid_title in title.lower() for valid_title in valid_titles)
+        is_email_valid = any(valid_email in email_from.lower() for valid_email in valid_emails)
+
+        return is_title_valid and is_email_valid
+
+        # return "your food order" in title.lower() and "no-reply@invoicing.gojek.com" in email_from.lower()
 
     def extract(self, content: EmailContent) -> list[TransactionData]:
         email = content.get_plaintext()
@@ -38,29 +51,33 @@ class GoFoodExtractor(BaseExtractor):
         trx.merchant = "GoFood"
         trx.currency = "IDR"
 
-        total_payment_match = re.search(r"Total payment: Rp([\d.]+)", email)
-        if total_payment_match:
-            trx.amount = Decimal(total_payment_match.group(1).replace('.', ''))
+        total_payment_match = re.search(r"Total (payment|pembayaran)\s*Rp([\d.]+)", email)
+        trx.amount = Decimal(total_payment_match.group(2).replace('.', ''))
 
-        gopay_match = re.search(r"Paid with GoPay: Rp([\d.]+)", email)
-        cash_match = re.search(r"Paid with Cash: Rp([\d.]+)", email)
-        
+        payment_match = re.findall(r"(?:Paid with|Bayar pakai)\s+([A-Za-z\s]+)(?=\s+Rp|$)", email)
+
         payment_methods = []
-        if gopay_match:
-            payment_methods.append("GoPay")
-        if cash_match:
-            payment_methods.append("Cash")
-        
+        payment_methods.extend(payment_match)
         trx.payment_method = " + ".join(payment_methods)
+        
+        trx.description = ""
 
-        date_match = re.search(r"Delivered on (\d+ \w+ \d{4}) at (\d{2}:\d{2})", email)
+        bulan_map = {
+            "Januari": "January", "Februari": "February", "Maret": "March",
+            "April": "April", "Mei": "May", "Juni": "June",
+            "Juli": "July", "Agustus": "August", "September": "September",
+            "Oktober": "October", "November": "November", "Desember": "December"
+        }
+
+        date_match = re.search(r"(?:Delivered on|Diantarkan)\s+(\d+ \w+ \d{4}) at (\d{2}:\d{2})", email)
         if date_match:
-            trx.date = datetime.datetime.strptime(
-                f"{date_match.group(1)} {date_match.group(2)}", 
-                "%d %B %Y %H:%M"
-            )
+            date_str = date_match.group(1)
+            time_str = date_match.group(2)
+            for indo, eng in bulan_map.items():
+                date_str = date_str.replace(indo, eng)
+            trx.date = datetime.datetime.strptime(f"{date_str} {time_str}", "%d %B %Y %H:%M")
 
-        match = re.search(r"Order ID:\s*(\S+)", email)
+        match = re.search(r"(?:Order ID|ID pesanan):\s*(\S+)", email)
         trx.trx_id = match.group(1)
 
         return [trx]
