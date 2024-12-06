@@ -45,7 +45,7 @@ class MyBCAExtrator(BaseExtractor):
         trx.amount = Decimal(amount.replace(",", ""))
 
         trx.description = re.search(r"(?:Remarks|Description)\s*:\s*(.+)", email).group(1)
-        trx.merchant = re.search(r"(?:Beneficiary Name|Company/Product Name)\s*:\s*(.+)", email).group(1)
+        trx.merchant = re.search(r"(?:Beneficiary Name|Company/Product Name)\s*:\s*(.+)", email).group(1).strip()
         trx.trx_id = re.search(r"Reference No\.\s*:\s*(.+)", email).group(1)
         trx.date = datetime.datetime.strptime(
             re.search(r"Transaction Date\s*:\s*(.+)", email).group(1).strip(),
