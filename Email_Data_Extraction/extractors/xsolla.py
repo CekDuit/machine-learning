@@ -27,7 +27,6 @@ class XsollaExtractor(BaseExtractor):
         trx = TransactionData()
         trx.is_incoming = False
         trx.payment_method = "Xsolla"
-        trx.extra_data = {}
 
         # Extract product name
         product_match = re.search(r"Product\s*-\s*(.*?)\s*Company", email)
@@ -35,7 +34,7 @@ class XsollaExtractor(BaseExtractor):
             trx.description = product_match.group(1).strip()
 
         # Extract company name
-        company_match = re.search(r"Company\s*(.*?)\s*Transaction number", email)
+        company_match = re.search(r"Company\s+([A-Za-z0-9\s\(\),\.]+(?:\sInc\.\s?))\s*", email)
         if company_match:
             trx.merchant = company_match.group(1).strip()
 
@@ -49,29 +48,14 @@ class XsollaExtractor(BaseExtractor):
         if date_match:
             trx.date = datetime.datetime.strptime(date_match.group(1), "%m/%d/%Y")
 
-        # Extract order ID
-        order_id_match = re.search(r"Order Id\s*(\S+)", email)
-        if order_id_match:
-            trx.extra_data["order_id"] = order_id_match.group(1)
-
-        # Extract country
-        country_match = re.search(r"Country\s*(.*?)\s*\* *\*", email)
-        if country_match:
-            trx.extra_data["country"] = country_match.group(1).strip()
-
-        # Extract subtotal
-        subtotal_match = re.search(r"Subtotal\s*(Rp[\d,\.]+)", email)
-        if subtotal_match:
-            trx.subtotal = Decimal(subtotal_match.group(1).replace("Rp", "").replace(",", "").strip())
-
         # Extract total
-        total_match = re.search(r"Total\s*(Rp[\d,\.]+)", email)
+        total_match = re.search(r"Total\s+Rp([\d\s,\.]+)", email)
         if total_match:
-            trx.amount = Decimal(total_match.group(1).replace("Rp", "").replace(",", "").strip())
+            trx.amount = Decimal(total_match.group(1).replace(" ", "").replace(",", "").strip())
 
         # Extract VAT amount
-        vat_match = re.search(r"Including\s*(\d+)%\s*VAT\s*:\s*(Rp[\d,\.]+)", email)
+        vat_match = re.search(r"Including\s+11%\s+VAT\s*:\s*Rp([\d\s,\.]+)", email)
         if vat_match:
-            trx.extra_data["vat_amount"] = Decimal(vat_match.group(2).replace("Rp", "").replace(",", "").strip())
+            trx.fees = Decimal(vat_match.group(1).replace(" ", "").replace(",", "").strip())
 
         return [trx]

@@ -19,15 +19,9 @@ class UniPinExtractor(BaseExtractor):
         # Clean up email content (replace multiple spaces and newlines with a single space)
         email = re.sub(r"\s+", " ", email)
 
-        # Debugging: Print cleaned-up email content to verify
-        print("Cleaned email content:")
-        print(email)
-        print("\n" + "-"*50 + "\n")
-
         trx = TransactionData()
         trx.is_incoming = False
-        trx.payment_method = "UniPin"
-        trx.extra_data = {}
+        trx.fees = 0
 
         # Extract transaction time
         time_match = re.search(r"Waktu Pembayaran\s*(\d{1,2} \w{3} \d{4} \d{2}:\d{2}) \(\w{3} \+\d{1,2}\)", email)
@@ -44,11 +38,6 @@ class UniPinExtractor(BaseExtractor):
         if trx_id_match:
             trx.trx_id = trx_id_match.group(1)
 
-        # Extract reference number
-        reference_match = re.search(r"Nomor Referensi\s*(\S+)", email)
-        if reference_match:
-            trx.extra_data["reference_number"] = reference_match.group(1)
-
         # Extract product name
         product_match = re.search(r"Nama Barang\s*(.*?)\s*Nominal Transaksi", email)
         if product_match:
@@ -58,20 +47,5 @@ class UniPinExtractor(BaseExtractor):
         amount_match = re.search(r"Nominal Transaksi\s*Rp\s*([\d,]+)", email)
         if amount_match:
             trx.amount = Decimal(amount_match.group(1).replace(",", ""))
-
-        # Extract user name
-        username_match = re.search(r"Nama Pengguna\s*(.*?)\s*ID Pengguna", email)
-        if username_match:
-            trx.extra_data["user_name"] = username_match.group(1).strip()
-
-        # Extract user ID
-        user_id_match = re.search(r"ID Pengguna\s*(\d+)", email)
-        if user_id_match:
-            trx.extra_data["user_id"] = user_id_match.group(1)
-
-        # Extract zone ID
-        zone_id_match = re.search(r"ID Zona\s*(\d+)", email)
-        if zone_id_match:
-            trx.extra_data["zone_id"] = zone_id_match.group(1)
 
         return [trx]
