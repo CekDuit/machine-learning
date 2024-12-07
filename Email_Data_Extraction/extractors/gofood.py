@@ -6,8 +6,8 @@ import datetime
 class GoFoodExtractor(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
         valid_titles = [
-            "your food order",
-            "pesanan makanan anda"
+            "your food order with gojek",
+            "pesanan makananmu bersama gojek"
         ]
         valid_emails = [
             "no-reply@invoicing.gojek.com"
@@ -62,20 +62,91 @@ class GoFoodExtractor(BaseExtractor):
         
         trx.description = ""
 
+        # bulan_map = {
+        #     "Januari": "January", "Februari": "February", "Maret": "March",
+        #     "April": "April", "Mei": "May", "Juni": "June",
+        #     "Juli": "July", "Agustus": "August", "September": "September",
+        #     "Oktober": "October", "November": "November", "Desember": "December"
+        # }
+
+        # date_match = re.search(r"(?:Delivered on|Diantarkan)\s+(\d+ \w+ \d{4}) at (\d{2}:\d{2})", email)
+        # if date_match:
+        #     date_str = date_match.group(1)
+        #     time_str = date_match.group(2)
+        #     for indo, eng in bulan_map.items():
+        #         date_str = date_str.replace(indo, eng)
+        #     trx.date = datetime.datetime.strptime(f"{date_str} {time_str}", "%d %B %Y %H:%M")
+
+        hari_map = {
+            "Senin": "Monday",
+            "Selasa": "Tuesday",
+            "Rabu": "Wednesday",
+            "Kamis": "Thursday",
+            "Jumat": "Friday",
+            "Sabtu": "Saturday",
+            "Minggu": "Sunday"
+        }
+        
         bulan_map = {
-            "Januari": "January", "Februari": "February", "Maret": "March",
-            "April": "April", "Mei": "May", "Juni": "June",
-            "Juli": "July", "Agustus": "August", "September": "September",
-            "Oktober": "October", "November": "November", "Desember": "December"
+            "Januari": "January",
+            "Februari": "February",
+            "Maret": "March",
+            "April": "April",
+            "Mei": "May",
+            "Juni": "June",
+            "Juli": "July",
+            "Agustus": "August",
+            "September": "September",
+            "Oktober": "October",
+            "November": "November",
+            "Desember": "December"
         }
 
-        date_match = re.search(r"(?:Delivered on|Diantarkan)\s+(\d+ \w+ \d{4}) at (\d{2}:\d{2})", email)
-        if date_match:
-            date_str = date_match.group(1)
-            time_str = date_match.group(2)
+        date_match_2022 = re.search(r"(?:on\s+)?((?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Senin|Selasa|Rabu|Kamis|Jumat|Sabtu|Minggu)),?\s+(\d+)\s+(\w+)\s+(\d{4})", email)
+        date_match_2023_2024 = re.search(r"(?:Delivered on|Diantarkan)\s+(\d+ \w+ \d{4}) at (\d{2}:\d{2})", email)
+
+        if date_match_2022:
+            hari = date_match_2022.group(1)
+            tanggal = date_match_2022.group(2)
+            bulan = date_match_2022.group(3)
+            tahun = date_match_2022.group(4)
+            
+            hari_map.update({
+                "Monday": "Monday",
+                "Tuesday": "Tuesday",
+                "Wednesday": "Wednesday",
+                "Thursday": "Thursday",
+                "Friday": "Friday",
+                "Saturday": "Saturday",
+                "Sunday": "Sunday"
+            })
+            
+            hari_eng = hari_map.get(hari, hari)
+            bulan_eng = bulan_map.get(bulan, bulan)
+            
+            date_str = f"{hari_eng}, {tanggal} {bulan_eng} {tahun}"
+            time_str = "00:00"
+            
+        elif date_match_2023_2024:
+            date_str = date_match_2023_2024.group(1).strip()
+            time_str = date_match_2023_2024.group(2)
+            
             for indo, eng in bulan_map.items():
                 date_str = date_str.replace(indo, eng)
-            trx.date = datetime.datetime.strptime(f"{date_str} {time_str}", "%d %B %Y %H:%M")
+                
+        else:
+            print("Tanggal tidak ditemukan dalam email")
+            trx.date = None
+            return 
+
+        try:
+            if "," in date_str:
+                trx.date = datetime.datetime.strptime(f"{date_str} {time_str}", "%A, %d %B %Y %H:%M")
+            else:
+                trx.date = datetime.datetime.strptime(f"{date_str} {time_str}", "%d %B %Y %H:%M")
+        except ValueError as e:
+            print(f"Error parsing date: {e}")
+            trx.date = None
 
         match = re.search(r"(?:Order ID|ID pesanan):\s*(\S+)", email)
         trx.trx_id = match.group(1)
