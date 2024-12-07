@@ -21,19 +21,21 @@ class BRIExtractor(BaseExtractor):
 
         trx = TransactionData()
         trx.is_incoming = False
-        trx.payment_method = "BRI"
+        trx.payment_method = "BRImo"
 
         # Check for specific types of transactions
-        if self._is_ewallet_top_up(email):  # Check if it's an e-wallet top-up
+        if self._is_ewallet_top_up(email):
             self._extract_ewallet_top_up(email, trx)
-        elif self._is_briva_payment(email):  # Check if it's a BRIVA payment
-            self._extract_payment(email, trx)
+        elif self._is_briva_payment(email):
+            self._extract_brivia_payment(email, trx)
         elif self._is_bpjs_payment(email):
             self._extract_bpjs_payment(email, trx)
         elif self._is_qris_payment(email):
             self._extract_qris_payment(email, trx)
         elif self._is_electricity_payment(email):
             self._extract_electricity_payment(email, trx)
+        elif self._is_credit_payment(email):
+            self._extract_credit_payment(email, trx)
         elif self._is_transfer(email):
             self._extract_transfer(email, trx)
 
@@ -43,13 +45,13 @@ class BRIExtractor(BaseExtractor):
         """
         Check if the email is for an e-wallet top-up transaction (e.g., ShopeePay, GoPay, DANA).
         """
-        return "ShopeePay" in email or "OVO" in email or "GoPay" in email or "DANA" in email  # Look for 'ShopeePay', 'OVO', 'GoPay', 'DANA' keyword in the transaction type
+        return "Jenis Transaksi ShopeePay" in email or "Jenis Transaksi DANA" in email or "Jenis Transaksi GoPay" in email or "Jenis Transaksi OVO" in email  # Look for 'ShopeePay', 'OVO', 'GoPay', 'DANA' keyword in the transaction type
 
     def _is_briva_payment(self, email: str) -> bool:
         """
         Check if the email is for a BRIVA payment.
         """
-        return "Pembayaran BRIVA" in email  # Check for 'Pembayaran BRIVA' in the transaction type
+        return "Jenis Transaksi Pembayaran BRIVA" in email  # Check for 'Pembayaran BRIVA' in the transaction type
     
     def _is_bpjs_payment(self, email: str) -> bool:
         """
@@ -62,199 +64,210 @@ class BRIExtractor(BaseExtractor):
         """
         Check if the email is for a QRIS payment transaction.
         """
-        return "QRIS" in email  # Check for 'QRIS' keyword in the email
+        return "Jenis Transaksi Pembelian QRIS" in email  # Check for 'QRIS' keyword in the email
     
     def _is_electricity_payment(self, email: str) -> bool:
         """
         Check if the email is for an electricity payment transaction.
         """
-        return "PLN" in email
-
+        return "PembayaranTAGIHAN LISTRIK" in email
+    
+    def _is_credit_payment(self, email: str) -> bool:
+        """
+        Check if the email is for a payment transaction.
+        """
+        return "Jenis Transaksi Pulsa" in email # Example pattern, adjust accordingly
+    
     def _is_transfer(self, email: str) -> bool:
         """
         Check if the email is for a bank transfer.
         """
-        return "Pemindahan" in email  # Example pattern, adjust accordingly
-    
-    
-    def _is_payment(self, email: str) -> bool:
-        """
-        Check if the email is for a payment transaction.
-        """
-        return "Pembayaran" in email or "Pembelian" in email  # Example pattern, adjust accordingly
+        return "Jenis Transaksi Transfer " in email  # Example pattern, adjust accordingly
 
     def _extract_ewallet_top_up(self, email: str, trx: TransactionData):
         """
         Extract data for an e-wallet top-up transaction (e.g., ShopeePay, GoPay, OVO, DANA).
         """
-        # Regex to match the date-time format
-        date_pattern = r"(\d{2}) (\w+) (\d{4}), (\d{2}):(\d{2}):(\d{2}) WIB"
-        date_match = re.search(date_pattern, email)
-
-        if date_match:
-            # Extract date components
-            day = date_match.group(1)
-            month_abbr = date_match.group(2)
-            year = date_match.group(3)
-            hour = date_match.group(4)
-            minute = date_match.group(5)
-            second = date_match.group(6)
-
-            # If the month is in full (e.g., "September") without abbreviation
-            month_translation = {
-                "Januari": "January", "Februari": "February", "Maret": "March", "April": "April", 
-                "Mei": "May", "Juni": "June", "Juli": "July", "Agustus": "August", "September": "September", 
-                "Oktober": "October", "November": "November", "Desember": "December"
-            }
-
-            # Replace the Indonesian month abbreviation with English
-            english_month = month_translation.get(month_abbr, month_abbr)
-
-            # Build the full date string for parsing
-            full_date_str = f"{day} {english_month} {year} {hour}:{minute}:{second}"
-
-            # Now, parse it using datetime
-            try:
-                parsed_date = datetime.strptime(full_date_str, "%d %B %Y %H:%M:%S")
-                trx.date = parsed_date
-            except ValueError as e:
-                print(f"Error parsing date: {e}")
-
-        # Regex to extract the transaction reference number
-        trx_id_pattern = r"No. Ref (\d+)"
-        trx_id_match = re.search(trx_id_pattern, email)
-        if trx_id_match:
-            trx.trx_id = trx_id_match.group(1)
-
-        # Regex to extract the merchant name
-        merchant_pattern = r"Jenis Transaksi (\w+)"
-        merchant_match = re.search(merchant_pattern, email)
-        if merchant_match:
-            trx.merchant = merchant_match.group(1)
-
-        # Regex to extract the amount
-        amount_pattern = r"Nominal Rp([\d,.]+)"
-        amount_match = re.search(amount_pattern, email)
-        if amount_match:
-            trx.amount = Decimal(amount_match.group(1).replace('.', '').replace(',', '.'))
-
-        # Regex to extract the fee
-        fee_pattern = r"Biaya Admin Rp([\d,.]+)"
-        fee_match = re.search(fee_pattern, email)
-        if fee_match:
-            trx.fees = Decimal(fee_match.group(1).replace('.', '').replace(',', '.'))
-
-        arr_merchant = ["ShopeePay", "OVO", "GoPay", "DANA"]
-        for merchant in arr_merchant:
-            if merchant in email:
-                trx.merchant = merchant
-                break
-
-        # Extract the description (Catatan)
-        description_pattern = r"Catatan\s*-*\s*(.*?)(?=\*{2,}|\Z)"
-        description_match = re.search(description_pattern, email, re.DOTALL)
-        if description_match:
-            trx.description = description_match.group(1).strip()
-        else:
-            trx.description = "No notes provided"
-
-    def _extract_payment(self, email: str, trx: TransactionData):
-        """
-        Extract data for a BRIVA payment transaction with flexible source account match.
-        """
-        # Regex to match the date-time format
-        date_pattern = r"(\d{2}) (\w+) (\d{4}), (\d{2}):(\d{2}):(\d{2}) WIB"
-        date_match = re.search(date_pattern, email)
-        if date_match:
-            # Extract date components
-            day = date_match.group(1)
-            month_abbr = date_match.group(2)
-            year = date_match.group(3)
-            hour = date_match.group(4)
-            minute = date_match.group(5)
-            second = date_match.group(6)
-            # Print extracted components
-            print(f"Day: {day}, Month: {month_abbr}, Year: {year}, Time: {hour}:{minute}:{second}")
-            # If the month is in full (e.g., "September") without abbreviation
-            month_translation = {
-                "Januari": "January", "Februari": "February", "Maret": "March", "April": "April", 
-                "Mei": "May", "Juni": "June", "Juli": "July", "Agustus": "August", "September": "September", 
-                "Oktober": "October", "November": "November", "Desember": "December"
-            }
-            # Replace the Indonesian month abbreviation with English
-            english_month = month_translation.get(month_abbr, month_abbr)
-            # Build the full date string for parsing
-            full_date_str = f"{day} {english_month} {year} {hour}:{minute}:{second}"
-            # Now, parse it using datetime
-            try:
-                parsed_date = datetime.strptime(full_date_str, "%d %B %Y %H:%M:%S")
-                trx.date = parsed_date
-            except ValueError as e:
-                print(f"Error parsing date: {e}")
-
-        # Extract Reference Number
-        ref_match = re.search(r"No. Ref (\S+)", email)
+        # Extract trx_id
+        ref_pattern = r"No\. Ref\s+(\d+)"
+        ref_match = re.search(ref_pattern, email)
         if ref_match:
             trx.trx_id = ref_match.group(1)
 
-        # Extract Nominal Amount
-        nominal_match = re.search(r"Nominal\s*Rp([\d,\.]+)", email)
-        if nominal_match:
-            trx.amount = Decimal(nominal_match.group(1).replace(".", "").replace(",", ""))
+        # Extract date
+        # Mapping for Indonesian months to English months
+        month_translation = {
+            "Januari": "Jan", "Februari": "Feb", "Maret": "Mar", "April": "Apr", "Mei": "May", "Juni": "Jun",
+            "Juli": "Jul", "Agustus": "Aug", "September": "Sep", "Oktober": "Oct", "November": "Nov", "Desember": "Dec"
+        }
 
-        # Extract Admin Fee (if available)
-        admin_fee_match = re.search(r"Biaya Admin\s*Rp([\d,\.]+)", email)
-        if admin_fee_match:
-            trx.fees = Decimal(admin_fee_match.group(1).replace(".", "").replace(",", ""))
+        # Corrected date pattern to capture full date with year and time
+        date_pattern = r"(\d{2})\s([A-Za-z]+)\s(\d{4}),\s(\d{2}:\d{2}:\d{2})\sWIB"
+        date_match = re.search(date_pattern, email)
+        if date_match:
+            # Extract the day, month, year, and time
+            day = date_match.group(1)
+            month_indonesian = date_match.group(2)
+            year = date_match.group(3)
+            time = date_match.group(4)
+            # Translate the month to English
+            month_english = month_translation.get(month_indonesian, month_indonesian)
+            # Combine into a formatted date string
+            date_str = f"{day} {month_english} {year}, {time}"
+            try:
+                # Convert to datetime object and format as required
+                trx_date = datetime.strptime(date_str, "%d %b %Y, %H:%M:%S")
+                trx.date = trx_date.strftime("%Y-%m-%d %H:%M:%S")
+            except ValueError as e:
+                print(f"Error parsing date: {e}")
+        else:
+            print("Date not found in the email content.")
+        
+        # Extract merchant
+        merchant_pattern = r"Jenis Transaksi\s+([A-Za-z\s]+)(?=\s*Catatan|\s*$)"
+        merchant_match = re.search(merchant_pattern, email)
+        if merchant_match:
+            trx.merchant = merchant_match.group(1).strip()
 
-        # Extract Total Amount
-        total_match = re.search(r"Total\s*Rp([\d,\.]+)", email)
-        if total_match:
-            trx.amount = Decimal(total_match.group(1).replace(".", "").replace(",", ""))
+        # Extract fees
+        fees_pattern = r"Biaya Admin\s+Rp([0-9\.,]+)"
+        fees_match = re.search(fees_pattern, email)
+        if fees_match:
+            trx.fees = Decimal(fees_match.group(1).replace(".", "").replace(",", ""))
 
-        # Extract Destination Information (e.g., "TOKOPEDIA", "80777082125220349")
-        destination_match = re.search(r"Tujuan\s*[A-Za-z\s]*([\w\s]+)\s*(\d+)", email)
-        if destination_match:
-            trx.merchant = destination_match.group(1).strip()
+        # Extract amount
+        amount_pattern = r"Nominal\s+Rp([0-9\.,]+)"
+        amount_match = re.search(amount_pattern, email)
+        if amount_match:
+            trx.amount = Decimal(amount_match.group(1).replace(".", "").replace(",", ""))
+            trx.currency = "IDR"
 
-        # Assign Currency (IDR for this example)
-        trx.currency = "IDR"  # Default to IDR
+        # Extract payment method
+        trx.payment_method = "BRImo"
+
+        # Extract description
+        trx.description = "Top-up e-wallet"
+
+
+    def _extract_brivia_payment(self, email: str, trx: TransactionData):
+        """
+        Extract data for a BRIVA payment transaction with flexible source account match.
+        """
+        # Extract trx_id
+        ref_pattern = r"No\.\s*Ref\s*(\d+)"
+        ref_match = re.search(ref_pattern, email)
+        if ref_match:
+            trx.trx_id = ref_match.group(1)
+
+        # Extract date
+        # Mapping for Indonesian months to English months
+        month_translation = {
+            "Januari": "Jan", "Februari": "Feb", "Maret": "Mar", "April": "Apr", "Mei": "May", "Juni": "Jun",
+            "Juli": "Jul", "Agustus": "Aug", "September": "Sep", "Oktober": "Oct", "November": "Nov", "Desember": "Dec"
+        }
+
+        # Corrected date pattern to capture full date with year and time
+        date_pattern = r"(\d{2})\s([A-Za-z]+)\s(\d{4}),\s(\d{2}:\d{2})\sWIB"
+        date_match = re.search(date_pattern, email)
+
+        if date_match:
+            # Extract the day, month, year, and time
+            day = date_match.group(1)
+            month_indonesian = date_match.group(2)
+            year = date_match.group(3)
+            time = date_match.group(4)
+
+            # Translate the month to English
+            month_english = month_translation.get(month_indonesian, month_indonesian)
+
+            # Combine into a formatted date string
+            date_str = f"{day} {month_english} {year}, {time}"
+
+            try:
+                # Convert to datetime object and format as required
+                trx_date = datetime.strptime(date_str, "%d %b %Y, %H:%M")
+                trx.date = trx_date.strftime("%Y-%m-%d %H:%M:%S")
+            except ValueError as e:
+                print(f"Error parsing date: {e}")
+        else:
+            print("Date not found in the email content.")
+
+        # Extract merchant
+        merchant_pattern = r"Tujuan\s+[A-Za-z]+\s+[A-Za-z0-9]+[\s]+([A-Za-z\s]+)\s+\d{16}"
+        merchant_match = re.search(merchant_pattern, email)
+        if merchant_match:
+            trx.merchant = merchant_match.group(1).strip()
+
+        # Extract fees
+        fees_pattern = r"Biaya Admin\s+Rp([0-9\.,]+)"
+        fees_match = re.search(fees_pattern, email)
+        if fees_match:
+            trx.fees = Decimal(fees_match.group(1).replace(".", "").replace(",", ""))
+
+        # Extract amount
+        amount_pattern = r"Nominal\s+Rp([0-9\.,]+)"
+        amount_match = re.search(amount_pattern, email)
+        if amount_match:
+            trx.amount = Decimal(amount_match.group(1).replace(".", "").replace(",", ""))
+            trx.currency = "IDR"
+
+        # Extract payment method
+        payment_method_pattern = r"Jenis Transaksi\s+[A-Za-z]+\s+([A-Za-z]+)"
+        payment_method_match = re.search(payment_method_pattern, email)
+        if payment_method_match:
+            trx.payment_method = payment_method_match.group(1)
+
+        # Extract description
         trx.description = "BRIVA Payment"
-
+        
     def _extract_bpjs_payment(self, email: str, trx: TransactionData):
         """
         Extract data for a BPJS payment transaction.
         """
-        # Extract Transaction Date and handle 'WIB' timezone
-        date_match = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4}) \| (\d{2}:\d{2}:\d{2}) WIB", email)
+        # Extract date
+        # Mapping for Indonesian months to English months
+        month_translation = {
+            "Januari": "Jan", "Februari": "Feb", "Maret": "Mar", "April": "Apr", "Mei": "May", "Juni": "Jun",
+            "Juli": "Jul", "Agustus": "Aug", "September": "Sep", "Oktober": "Oct", "November": "Nov", "Desember": "Dec"
+        }
+
+        # Regex to extract the date and time from the email
+        date_pattern = r"Tanggal\s+(\d{2})\s([A-Za-z]+)\s(\d{4})\s\|\s(\d{2}:\d{2}:\d{2})\sWIB"
+        date_match = re.search(date_pattern, email)
         if date_match:
-            date_str = f"{date_match.group(1)} {date_match.group(2)}"
-            # Translate the Indonesian month abbreviation to English
-            month_translation = {
-                "Jan": "January", "Feb": "February", "Mar": "March", "Apr": "April", "Mei": "May",
-                "Jun": "June", "Jul": "July", "Agu": "August", "Sep": "September", "Okt": "October",
-                "Nov": "November", "Des": "December"
-            }
-            for ind_month, eng_month in month_translation.items():
-                date_str = date_str.replace(ind_month, eng_month)
+            # Extract the day, month, year, and time
+            day = date_match.group(1)
+            month_indonesian = date_match.group(2)
+            year = date_match.group(3)
+            time = date_match.group(4)
 
-            # Parse the date
-            trx.date = datetime.datetime.strptime(date_str, "%d %B %Y %H:%M:%S")
+            # Translate the month to English (if necessary)
+            month_english = month_translation.get(month_indonesian, month_indonesian)
 
+            # Combine the extracted date and time into a single string
+            date_str = f"{day} {month_english} {year} {time}"
+
+            # Convert to datetime object and format as required
+            try:
+                trx_date = datetime.strptime(date_str, "%d %b %Y %H:%M:%S")
+                trx.date = trx_date.strftime("%Y-%m-%d %H:%M:%S")
+            except ValueError as e:
+                print(f"Error parsing date: {e}")
+        else:
+            print("Date not found in the email content.")
+    
         # Extract Reference Number (Nomor Referensi)
         ref_match = re.search(r"Nomor Referensi\s*(\S+)", email)
         if ref_match:
             trx.trx_id = ref_match.group(1)
 
-        # Extract Customer Name (Nama Pelanggan)
-        customer_name_match = re.search(r"Nama Pelanggan\s*([\w\s]+)", email)
-        if customer_name_match:
-            trx.merchant = customer_name_match.group(1).strip()
+        # Extract merchant
+        merchant_match = re.search(r"Institusi\s+([A-Za-z\s]+)\s+Nomor", email)
+        if merchant_match:
+            trx.merchant = merchant_match.group(1).strip()
 
-        # Extract Notes (Keterangan)
-        notes_match = re.search(r"Keterangan\s*([\w\s]+)", email)
-        if notes_match:
-            trx.description = notes_match.group(1).strip()
+        # Extract description
+        trx.description = "Pembayaran BPJS"
 
         # Extract Nominal Amount (Nominal)
         nominal_match = re.search(r"Nominal\s*Rp([\d,\.]+)", email)
@@ -271,52 +284,51 @@ class BRIExtractor(BaseExtractor):
         """
         Extract data for a QRIS payment transaction.
         """
-        # 1. Extract Transaction Date (Tanggal)
-        date_pattern = r"Tanggal (\d{2} \w{3} \d{4}) \| (\d{2}:\d{2}:\d{2}) WIB"
+        # Extract trx_id
+        ref_pattern = r"Nomor Referensi\s+(\d+)"
+        ref_match = re.search(ref_pattern, email)
+        if ref_match:
+            trx.trx_id = ref_match.group(1)
+
+        # Extract date
+        date_pattern = r"Tanggal\s+(\d{2}\s[A-Za-z]{3}\s\d{4}\s\|\s\d{2}:\d{2}:\d{2}\sWIB)"
         date_match = re.search(date_pattern, email)
         if date_match:
-            # Extract the date and time components
-            date_str = f"{date_match.group(1)} {date_match.group(2)}"
-            # Translate Indonesian month abbreviation to English
-            month_translation = {
-                "Jan": "January", "Feb": "February", "Mar": "March", "Apr": "April", "Mei": "May",
-                "Jun": "June", "Jul": "July", "Agu": "August", "Sep": "September", "Okt": "October",
-                "Nov": "November", "Des": "December"
-            }
-            for ind_month, eng_month in month_translation.items():
-                date_str = date_str.replace(ind_month, eng_month)
+            date_str = date_match.group(1)
+            trx.date = datetime.strptime(date_str, "%d %b %Y | %H:%M:%S WIB").strftime("%Y-%m-%d %H:%M:%S")
 
-            # Convert to datetime object
-            trx.date = datetime.strptime(date_str, "%d %B %Y %H:%M:%S")
-
-        # 2. Extract Transaction Reference Number (Nomor Referensi)
-        trx_id_pattern = r"Nomor Referensi (\d+)"
-        trx_id_match = re.search(trx_id_pattern, email)
-        if trx_id_match:
-            trx.trx_id = trx_id_match.group(1)
-
-        # 3. Extract Merchant Name (Nama Merchant)
-        merchant_pattern = r"Nama Merchant ([\w\s]+)"
+        # Extract merchant
+        merchant_pattern = r"Nama Merchant\s+([A-Za-z0-9\s\(\)\-\,\.]+?)(?=\s+Lokasi Merchant|$)"
         merchant_match = re.search(merchant_pattern, email)
         if merchant_match:
             trx.merchant = merchant_match.group(1)
 
-        # 4. Extract Transaction Amount (Nominal)
-        amount_pattern = r"Nominal Rp([\d\.]+)"
+        # Extract fees
+        fees_pattern = r"Biaya Admin\s+Rp([\d,]+)"
+        fees_match = re.search(fees_pattern, email)
+        if fees_match:
+            trx.fees = Decimal(fees_match.group(1).replace(",", ""))
+
+        # Extract amount
+        amount_pattern = r"Total\s+Rp([\d\.]+)"
         amount_match = re.search(amount_pattern, email)
         if amount_match:
-            trx.amount = Decimal(amount_match.group(1).replace('.', '').replace(',', '.'))
+            trx.amount = Decimal(amount_match.group(1).replace(".", ""))
+            trx.currency = "IDR"
 
-        # 5. Extract Transaction Fee (Biaya Admin)
-        fee_pattern = r"Biaya Admin Rp([\d\.]+)"
-        fee_match = re.search(fee_pattern, email)
-        if fee_match:
-            trx.fees = Decimal(fee_match.group(1).replace('.', '').replace(',', '.'))
+        # Extract payment method
+        payment_method_pattern = r"Nama Penerbit\s+([A-Za-z\s]+?)\s+Nama Acquirer"
+        payment_method_match = re.search(payment_method_pattern, email)
+        if payment_method_match:
+            trx.payment_method = payment_method_match.group(1)
 
-        trx.description = "Transaksi dengan QRIS BRI"
-
-        trx.payment_method = "QRIS BRI"
-
+        # Extract description
+        description_pattern = r"Jenis Transaksi\s+([A-Za-z\s]+)\s+Nama Merchant\s+([A-Za-z0-9\s]+)\s+Lokasi Merchant\s+([A-Za-z\s]+)"
+        description_match = re.search(description_pattern, email)
+        if description_match:
+            trx.description = description_match.group(1) + " " + description_match.group(2)
+        
+        
     def _extract_electricity_payment(self, email: str, trx: TransactionData):
         """
         Extract data for an electricity payment transaction.
@@ -364,8 +376,135 @@ class BRIExtractor(BaseExtractor):
         trx.payment_method = "BRI"
         trx.currency = "IDR"
 
+    def _extract_credit_payment(self, email: str, trx: TransactionData):
+        """
+        Extract data for a credit payment transaction.
+        """
+        # Extract trx_id
+        ref_pattern = r"Nomor Referensi\s+(\d{4}\s\d{4}\s\d{4})"
+        ref_match = re.search(ref_pattern, email)
+        if ref_match:
+            trx.trx_id = ref_match.group(1)
+
+        # Extract date
+        # Mapping for Indonesian months to English months
+        month_translation = {
+            "Januari": "Jan", "Februari": "Feb", "Maret": "Mar", "April": "Apr", "Mei": "May", "Juni": "Jun",
+            "Juli": "Jul", "Agustus": "Aug", "September": "Sep", "Oktober": "Oct", "November": "Nov", "Desember": "Dec"
+        }
+
+        # Corrected date pattern to capture full date with year and time
+        date_pattern = r"Tanggal\s+(\d{2})\s([A-Za-z]+)\s(\d{4})\s\|\s(\d{2}:\d{2}:\d{2})"
+        date_match = re.search(date_pattern, email)
+        if date_match:
+            # Extract the day, month, year, and time
+            day = date_match.group(1)
+            month_indonesian = date_match.group(2)
+            year = date_match.group(3)
+            time = date_match.group(4)
+            # Translate the month to English
+            month_english = month_translation.get(month_indonesian, month_indonesian)
+            # Combine into a formatted date string
+            date_str = f"{day} {month_english} {year}, {time}"
+            try:
+                # Convert to datetime object and format as required
+                trx_date = datetime.strptime(date_str, "%d %b %Y, %H:%M:%S")
+                trx.date = trx_date.strftime("%Y-%m-%d %H:%M:%S")
+            except ValueError as e:
+                print(f"Error parsing date: {e}")
+        else:
+            print("Date not found in the email content.")
+
+        # Extract merchant
+        merchant_pattern = r"Provider\s+([A-Za-z\s]+)\s+Jenis Produk"
+        merchant_match = re.search(merchant_pattern, email)
+        if merchant_match:
+            trx.merchant = merchant_match.group(1).strip()
+
+        # Extract fees
+        fees_pattern = r"Biaya Admin\s+Rp([\d,.]+)"
+        fees_match = re.search(fees_pattern, email)
+        if fees_match:
+            trx.fees = Decimal(fees_match.group(1).replace(".", "").replace(",", ""))
+
+        # Extract amount
+        amount_pattern = r"Nominal\s+Rp([\d,.]+)"
+        amount_match = re.search(amount_pattern, email)
+        if amount_match:
+            trx.amount = Decimal(amount_match.group(1).replace(".", "").replace(",", ""))
+            trx.currency = "IDR"
+
+        # Extract payment method
+        trx.payment_method = "BRImo"
+
+        # Extract description
+        description_pattern = r"Jenis Produk\s+([A-Za-z\s\d]+)"
+        description_match = re.search(description_pattern, email)
+        if description_match:
+            trx.description = description_match.group(1).strip()
+
     def _extract_transfer(self, email: str, trx: TransactionData):
         """
         Extract data for a transfer transaction.
         """
-        pass  # Add logic for transfer-specific fields
+        # Extract trx_id
+        ref_pattern = r"Nomor Referensi\s+(\d+)"
+        ref_match = re.search(ref_pattern, email)
+        if ref_match:
+            trx.trx_id = ref_match.group(1)
+
+        # Extract date
+        # Mapping for Indonesian months to English months
+        month_translation = {
+            "Januari": "Jan", "Februari": "Feb", "Maret": "Mar", "April": "Apr", "Mei": "May", "Juni": "Jun",
+            "Juli": "Jul", "Agustus": "Aug", "September": "Sep", "Oktober": "Oct", "November": "Nov", "Desember": "Dec"
+        }
+
+        date_pattern = r"Tanggal\s+(\d{2})\s([A-Za-z]+)\s(\d{4})\s+,\s+(\d{2}:\d{2}:\d{2})\sWIB"
+        date_match = re.search(date_pattern, email)
+        if date_match:
+            # Extract the day, month, year, and time
+            day = date_match.group(1)
+            month_indonesian = date_match.group(2)
+            year = date_match.group(3)
+            time = date_match.group(4)
+            # Translate the month to English
+            month_english = month_translation.get(month_indonesian, month_indonesian)
+            # Combine into a formatted date string
+            date_str = f"{day} {month_english} {year}, {time}"
+            try:
+                # Convert to datetime object and format as required
+                trx_date = datetime.strptime(date_str, "%d %b %Y, %H:%M:%S")
+                trx.date = trx_date.strftime("%Y-%m-%d %H:%M:%S")
+            except ValueError as e:
+                print(f"Error parsing date: {e}")
+        else:
+            print("Date not found in the email content.")
+
+        # Extract merchant
+        merchant_pattern = r"Bank Tujuan\s+([A-Za-z\s]+)\s+Nomor Tujuan"
+        merchant_match = re.search(merchant_pattern, email)
+        if merchant_match:
+            trx.merchant = merchant_match.group(1)
+
+        # Extract fees
+        fees_pattern = r"Biaya Admin\s+Rp([0-9\.,]+)"
+        fees_match = re.search(fees_pattern, email)
+        if fees_match:
+            trx.fees = Decimal(fees_match.group(1).replace(".", "").replace(",", ""))
+
+        # Extract amount
+        amount_pattern = r"Nominal\s+Rp([0-9\.,]+)"
+        amount_match = re.search(amount_pattern, email)
+        if amount_match:
+            trx.amount = Decimal(amount_match.group(1).replace(".", "").replace(",", ""))
+            trx.currency = "IDR"
+
+        # Extract payment method
+        trx.payment_method = "BRImo"
+
+        # Extract description
+        description_pattern = r"Jenis Transaksi\s+([A-Za-z\- ]+)\s+Bank Tujuan"
+        description_match = re.search(description_pattern, email)
+        if description_match:
+            trx.description = description_match.group(1)
