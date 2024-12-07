@@ -10,7 +10,7 @@ class OCBCExtractor(BaseExtractor):
         """
         Check if the email matches the OCBC payment receipt format.
         """
-        return title in ["Successful Bill Payment", "TRANSFER DANA"] and email_from == "onlinetransaction@ocbc.id"
+        return (title.find("Successful Payment to ") or title.find("Transfer Dana ")) and (email_from == "onlinetransaction@ocbc.id" or email_from == "notifikasi@ocbc.id")
 
     def extract(self, content: EmailContent) -> list[TransactionData]:
         """
@@ -42,7 +42,7 @@ class OCBCExtractor(BaseExtractor):
         """
         Check if the email is in the 'Successful Bill Payment' format for top-up.
         """
-        if "Successful Bill Payment" in email or "Top Up" in email:
+        if "Successful Bill Payment" in email or "Top Up" in email or "Successful Payment" in email:
             return True
         return False
     
@@ -50,7 +50,10 @@ class OCBCExtractor(BaseExtractor):
         """
         Extract the transfer details from the OCBC email.
         """
-        # 4. Extract Nominal (Amount)
+        # Extract Transaction ID
+        trx.trx_id = "-"
+
+        # Extract Nominal (Amount)
         nominal_pattern = r"Nominal\s*:\s*Rp\s*([\d\.]+),(\d{2})\s*"
         nominal_match = re.search(nominal_pattern, email)
         if nominal_match:
@@ -58,7 +61,7 @@ class OCBCExtractor(BaseExtractor):
             nominal_value = nominal_match.group(1).replace(".", "")  # Remove periods
             trx.currency = "IDR"  # Set currency
             trx.amount = Decimal(nominal_value)  # Convert to Decimal
-            trx.fees = 0
+            trx.fees = 0  # No fees for transfers
 
         # Description (can be customized if needed, currently we set it as 'Transfer Dana')
         trx.description = "Transfer Dana"
@@ -68,7 +71,7 @@ class OCBCExtractor(BaseExtractor):
         if merchant_match:
             trx.merchant = merchant_match.group(1)
 
-        # 8. Extract Transaction Date
+        # Extract Transaction Date
         date_pattern = r"Tanggal Transaksi\s*:\s*(\d{2} \w+ \d{4})\s*"
         date_match = re.search(date_pattern, email)
         if date_match:
@@ -87,6 +90,12 @@ class OCBCExtractor(BaseExtractor):
         """
         Extract details from the top-up email format.
         """
+        # Extract trx_id
+        ref_match = r"Reference\s+Number:\s+(\S+)"
+        ref_match = re.search(ref_match, email)
+        if ref_match:
+            trx.trx_id = ref_match.group(1)
+
         # Extract the amount (remove 'IDR', commas, and parse the number)
         amount_pattern = r"IDR\s*([\d,]+)"
         amount_match = re.search(amount_pattern, email)
@@ -96,7 +105,7 @@ class OCBCExtractor(BaseExtractor):
             # Set currency
             trx.currency = "IDR"
             trx.amount = Decimal(amount_str)
-            trx.fees = 0
+            trx.fees = 0  # No fees for top-up
 
         # Set description
         trx.description = "Top-up Payment"
