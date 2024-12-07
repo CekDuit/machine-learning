@@ -57,15 +57,18 @@ class PaypalExtractor(BaseExtractor):
         date_match = re.search(r"(?:Tanggal transaksi|Transaction date)\s*\n\s*(.+)", email)
         date_str = date_match.group(1).strip()
         bulan_map = {
-                "Januari": "January", "Februari": "February", "Maret": "March",
-                "April": "April", "Mei": "May", "Juni": "June",
-                "Juli": "July", "Agustus": "August", "September": "September",
-                "Oktober": "October", "November": "November", "Desember": "December"
-            }
+            "Januari": "January", "Februari": "February", "Maret": "March",
+            "April": "April", "Mei": "May", "Juni": "June",
+            "Juli": "July", "Agustus": "August", "September": "September",
+            "Oktober": "October", "November": "November", "Desember": "December"
+        }
         for indo, eng in bulan_map.items():
             date_str = date_str.replace(indo, eng)
-        
-        trx.date = datetime.datetime.strptime(date_str, "%d %b %Y")
+
+        try:
+            trx.date = datetime.datetime.strptime(date_str, "%d %b %Y")
+        except ValueError:
+            trx.date = datetime.datetime.strptime(date_str, "%d %B %Y")
 
         trx_id_match = re.search(r"(?:ID transaksi|Transaction ID)\s*(\S+)", email)
         trx.trx_id = trx_id_match.group(1) if trx_id_match else None
@@ -101,15 +104,18 @@ class PaypalExtractor(BaseExtractor):
         date_match = re.search(r"(?:Tanggal transaksi|Transaction date)\s*\n\s*(.+)", email)
         date_str = date_match.group(1).strip()
         bulan_map = {
-                "Januari": "January", "Februari": "February", "Maret": "March",
-                "April": "April", "Mei": "May", "Juni": "June",
-                "Juli": "July", "Agustus": "August", "September": "September",
-                "Oktober": "October", "November": "November", "Desember": "December"
-            }
+            "Januari": "January", "Februari": "February", "Maret": "March",
+            "April": "April", "Mei": "May", "Juni": "June",
+            "Juli": "July", "Agustus": "August", "September": "September",
+            "Oktober": "October", "November": "November", "Desember": "December"
+        }
         for indo, eng in bulan_map.items():
             date_str = date_str.replace(indo, eng)
-         
-        trx.date = datetime.datetime.strptime(date_str, "%d %b %Y")
+
+        try:
+            trx.date = datetime.datetime.strptime(date_str, "%d %b %Y")
+        except ValueError:
+            trx.date = datetime.datetime.strptime(date_str, "%d %B %Y")
 
         trx_id_match = re.search(r"(?:ID transaksi|Transaction ID)\s*(\S+)", email)
         trx.trx_id = trx_id_match.group(1) if trx_id_match else None
