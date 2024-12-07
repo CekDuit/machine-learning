@@ -38,6 +38,21 @@ class TransactionData:
     def __repr__(self):
         return str(self)
 
+    def is_proper(self):
+        mandatory_fields = ["trx_id", "date", "merchant", "amount", "currency", "payment_method", "is_incoming", "description"]
+        return all(hasattr(self, field) for field in mandatory_fields)
+    
+    def to_formatted_dict(self):
+        return {
+            "Datetime": self.date,
+            "Merchant Name": self.merchant,
+            "Transaction ID": self.trx_id,
+            "Amount": self.amount,
+            "Currency": self.currency,
+            "Payment Method": self.payment_method,
+            "Transaction Type": "INCOME" if self.is_incoming else "EXPENSE",
+            "Notes": self.description,
+        }
 
 h = html2text.HTML2Text()
 h.ignore_links = True
