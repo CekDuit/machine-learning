@@ -6,7 +6,7 @@ import datetime
 
 class GooglePlayExtractor(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
-        return "google play order" in title.lower() and "googleplay-noreply@google.com" in email_from.lower()
+        return "google play order receipt" in title.lower() and "googleplay-noreply@google.com" in email_from.lower()
 
     def extract(self, content: EmailContent) -> list[TransactionData]:
         email = content.get_plaintext()
@@ -41,6 +41,14 @@ class GooglePlayExtractor(BaseExtractor):
 
         date_str = re.search(r"Order date\s*:\s*(.+)", email).group(1)
         date_str_cleaned = re.sub(r"\s*GMT[\+\-]\d+", "", date_str).strip()
+
+        month_map = {
+                    "Sept": "Sep",  
+                }
+        
+        for wrong_month, correct_month in month_map.items():
+            date_str_cleaned = date_str_cleaned.replace(wrong_month, correct_month)
+
         trx.date = datetime.datetime.strptime(date_str_cleaned, "%d %b %Y %H:%M:%S")
 
         order_number_match = re.search(r"Order number\s*:\s*(GPA\.\d{4}-\d{4}-\d{4}-\d{5})", email)
