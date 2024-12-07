@@ -36,7 +36,9 @@ class OCBCExtractor(BaseExtractor):
         """
         Check if the email is a transfer receipt.
         """
-        return "TRANSFER DANA" in email
+        if "TRANSFER DANA" in email:
+            return True
+        return False
     
     def _is_extract_top_up(self, email: str) -> Optional[bool]:
         """
