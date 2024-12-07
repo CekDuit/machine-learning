@@ -58,6 +58,7 @@ class OCBCExtractor(BaseExtractor):
             nominal_value = nominal_match.group(1).replace(".", "")  # Remove periods
             trx.currency = "IDR"  # Set currency
             trx.amount = Decimal(nominal_value)  # Convert to Decimal
+            trx.fees = 0
 
         # Description (can be customized if needed, currently we set it as 'Transfer Dana')
         trx.description = "Transfer Dana"
@@ -95,6 +96,7 @@ class OCBCExtractor(BaseExtractor):
             # Set currency
             trx.currency = "IDR"
             trx.amount = Decimal(amount_str)
+            trx.fees = 0
 
         # Set description
         trx.description = "Top-up Payment"
