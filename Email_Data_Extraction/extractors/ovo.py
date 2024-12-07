@@ -21,15 +21,13 @@ class OVOExtractor(BaseExtractor):
 
         trx = TransactionData()
         trx.is_incoming = False
-        trx.payment_method = "OVO"
-        trx.extra_data = {}
+        trx.currency = "IDR"
 
         # Extract payment amount (and display in thousand Rupiah)
-        amount_match = re.search(r"Pembayaran Berhasil\s*-\s*(Rp[\d,]+)", email)
+        amount_match = re.search(r"Pembayaran\s*Rp(\d{1,3}(?:.\d{3})*)", email)
         if amount_match:
-            amount_str = amount_match.group(1).replace("Rp", "").replace(",", "").strip()
-            trx.amount = Decimal(amount_str)  # Remove dividing by 1000
-            trx.currency = "IDR"
+            amount_str = amount_match.group(1).replace(".", "")
+            trx.amount = Decimal(amount_str)
 
         # Extract transaction date
         date_match = re.search(r"(\d{1,2} \w{3} \d{4}, \d{2}:\d{2})", email)
@@ -37,43 +35,24 @@ class OVOExtractor(BaseExtractor):
             trx.date = datetime.datetime.strptime(date_match.group(1), "%d %b %Y, %H:%M")
 
         # Extract merchant name
-        merchant_match = re.search(r"Nama Toko\s*(.*?)\s*Lokasi", email)
+        merchant_match = re.search(r"Nama Toko\s([A-Za-z\s]+),\s", email)
         if merchant_match:
             trx.merchant = merchant_match.group(1).strip()
-
-        # Extract reference number
-        trx_id_match = re.search(r"No\. Referensi\s*(\S+)", email)
-        if trx_id_match:
-            trx.trx_id = trx_id_match.group(1)
 
         # Extract transaction code (No. Resi)
         transaction_code_match = re.search(r"No\. Resi \(Kode Transaksi\)\s*(\S+)", email)
         if transaction_code_match:
-            trx.extra_data["transaction_code"] = transaction_code_match.group(1)
-
-        # Extract approval code
-        approval_code_match = re.search(r"Kode Approval\s*(\d+)", email)
-        if approval_code_match:
-            trx.extra_data["approval_code"] = approval_code_match.group(1)
+            trx.trx_id = transaction_code_match.group(1)
 
         # Extract payment method
-        payment_method_match = re.search(r"Metode Pembayaran\s*(.*)", email)
-        if payment_method_match:
-            trx.payment_method = payment_method_match.group(1).strip()
+        if "OVO Cash" in email:
+            trx.payment_method = "OVO Cash"
+        else:
+            trx.payment_method = "OVO Points"
 
-        # Extract issuer name
-        issuer_match = re.search(r"Nama Issuer\s*(.*)", email)
-        if issuer_match:
-            trx.extra_data["issuer"] = issuer_match.group(1).strip()
-
-        # Extract OVO ID
-        ovo_id_match = re.search(r"OVO ID\s*(\d+)", email)
-        if ovo_id_match:
-            trx.extra_data["ovo_id"] = ovo_id_match.group(1)
-
-        # Extract customer PAN
-        customer_pan_match = re.search(r"Customer PAN\s*(\d+)", email)
-        if customer_pan_match:
-            trx.extra_data["customer_pan"] = customer_pan_match.group(1)
+        # Extract fees
+        fees_match = re.search(r"Tip\sRp([\d,]+)", email)
+        if fees_match:
+            trx.fees = fees_match.group(1)
 
         return [trx]
