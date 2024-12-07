@@ -5,11 +5,24 @@ import datetime
 
 
 class JagoExtractor(BaseExtractor):
+    # def match(self, title: str, email_from: str) -> bool:
+    #     return (
+    #     "kamu telah membayar" in title.lower() and
+    #     "noreply@jago.com" in email_from.lower()
+    # )
+
     def match(self, title: str, email_from: str) -> bool:
-        return (
-        "kamu telah membayar" in title.lower() and
-        "noreply@jago.com" in email_from.lower()
-    )
+        valid_titles = [
+            "kamu telah membayar"
+        ]
+        valid_emails = [
+            "noreply@jago.com",
+            "tanya@jago.com"
+        ]
+        is_title_valid = any(valid_title in title.lower() for valid_title in valid_titles)
+        is_email_valid = any(valid_email in email_from.lower() for valid_email in valid_emails)
+
+        return is_title_valid and is_email_valid
 
     def extract(self, content: EmailContent) -> list[TransactionData]:
         email = content.get_plaintext()
