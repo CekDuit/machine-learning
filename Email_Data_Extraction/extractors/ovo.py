@@ -8,7 +8,7 @@ class OVOExtractor(BaseExtractor):
         """
         Check if the email matches the OVO payment confirmation format.
         """
-        return "Pembayaran Berhasil" in title and "OVO" in email_from
+        return title == "OVO QR Payment Receipt" and email_from == "noreply@ovo.co.id"
     
     def extract(self, content: EmailContent) -> list[TransactionData]:
         """
@@ -22,6 +22,7 @@ class OVOExtractor(BaseExtractor):
         trx = TransactionData()
         trx.is_incoming = False
         trx.currency = "IDR"
+        trx.description = "OVO"
 
         # Extract payment amount (and display in thousand Rupiah)
         amount_match = re.search(r"Pembayaran\s*Rp(\d{1,3}(?:.\d{3})*)", email)

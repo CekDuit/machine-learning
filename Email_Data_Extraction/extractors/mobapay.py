@@ -8,7 +8,7 @@ class MobaPayExtractor(BaseExtractor):
         """
         Check if the email matches the Mobapay payment confirmation format.
         """
-        return "Payment Successful" in title and "mobapay" in email_from
+        return "Payment Successful" in title and "mobapay@mail.mobapay.com" in email_from
     
     def extract(self, content: EmailContent) -> list[TransactionData]:
         """

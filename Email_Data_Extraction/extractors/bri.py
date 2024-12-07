@@ -8,7 +8,7 @@ class BRIExtractor(BaseExtractor):
         """
         Check if the email matches the BRI format.
         """
-        return email_from == "BankBRI@bri.co.id" and ("Top Up" in title or "Pembelian" in title or "Pembayaran" in title or "Pemindahan" in title)
+        return title == "Top Up" or "Pembelian" or "Pembayaran" or "Pemindahan" and email_from == "BankBRI@bri.co.id"
     
     def extract(self, content: EmailContent) -> list[TransactionData]:
         """
@@ -36,8 +36,6 @@ class BRIExtractor(BaseExtractor):
             self._extract_electricity_payment(email, trx)
         elif self._is_transfer(email):
             self._extract_transfer(email, trx)
-        else:
-            trx.description = "Unknown transaction type"
 
         return [trx]
     

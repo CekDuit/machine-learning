@@ -8,7 +8,7 @@ class UniPinExtractor(BaseExtractor):
         """
         Check if the email matches the UniPin purchase format.
         """
-        return email_from == "cs@unipin.com" and "UniPin" in title
+        return title == "UniPin :: Success Flash Top Up Transaction" and email_from == "do_not_reply@unipin.com"
     
     def extract(self, content: EmailContent) -> list[TransactionData]:
         """
@@ -21,7 +21,11 @@ class UniPinExtractor(BaseExtractor):
 
         trx = TransactionData()
         trx.is_incoming = False
-        trx.fees = 0
+        trx.currency = "IDR"
+        trx.fees = 0 # No fees for UniPin transactions
+
+        if "UniPin" in email:
+            trx.merchant = "UniPin"
 
         # Extract transaction time
         time_match = re.search(r"Waktu Pembayaran\s*(\d{1,2} \w{3} \d{4} \d{2}:\d{2}) \(\w{3} \+\d{1,2}\)", email)

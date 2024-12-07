@@ -8,7 +8,7 @@ class EGExtractor(BaseExtractor):
         """
         Check if the email matches the EG transaction receipt format.
         """
-        return email_from == "help@acct.epicgames.com" and "Your Epic Games Receipt" in title
+        return title.startswith("Your Epic Games Receipt ") and email_from == "help@accts.epicgames.com" 
     
     def extract(self, content: EmailContent) -> list[TransactionData]:
         """
@@ -35,7 +35,7 @@ class EGExtractor(BaseExtractor):
         if description_match:
             trx.description = description_match.group(1) + " " + description_match.group(2)  # Description (Game Name + Publisher)
             trx.amount = Decimal(description_match.group(3).replace(",", ""))  # Amount (Price)
-            trx.fees = 0
+            trx.fees = 0  # No fees for EG transactions
 
         # Regex for Order Date and Source
         order_date_pattern = r"Source:\s*([A-Za-z\s]+)\s+([A-Za-z]+\s\d{1,2},\s\d{4})\s*(.*)"

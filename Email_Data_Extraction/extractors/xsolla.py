@@ -8,7 +8,7 @@ class XsollaExtractor(BaseExtractor):
         """
         Check if the email matches the Xsolla purchase format.
         """
-        return email_from == "mailer@xsolla.com" and "Your Receipt No." in title
+        return title.startswith("Your receipt No. ") and email_from == "mailer@xsolla.com"
     
     def extract(self, content: EmailContent) -> list[TransactionData]:
         """
@@ -27,6 +27,7 @@ class XsollaExtractor(BaseExtractor):
         trx = TransactionData()
         trx.is_incoming = False
         trx.payment_method = "Xsolla"
+        trx.currency = "IDR"
 
         # Extract product name
         product_match = re.search(r"Product\s*-\s*(.*?)\s*Company", email)
