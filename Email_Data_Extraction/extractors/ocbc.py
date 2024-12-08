@@ -64,7 +64,7 @@ class OCBCExtractor(BaseExtractor):
         """
         Check if the email is in the 'Successful Bill Payment' format for top-up.
         """
-        if "Successful Payment" in email or "Top Up" in email in email:
+        if "Successful Payment" in email or "Top Up" in email or "Successful Bill Payment" in email:
             return True
         return False
     
