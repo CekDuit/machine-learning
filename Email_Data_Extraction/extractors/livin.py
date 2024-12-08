@@ -46,8 +46,8 @@ class MandiriExtractor(BaseExtractor):
             trx.currency = "IDR"
         trx.amount = int(Decimal(amount.replace(".", "").replace(",", ".")))
 
-        description_match = re.search(r"Keterangan\s*\\-?", email)
-        trx.description = description_match
+        description_match = re.search(r"Keterangan\s*\\([^\s]+)", email)
+        trx.description = description_match.group(1).strip()
 
         merchant_match = re.search(r"Penerima\s*\n\s*####\s*(.+)", email)
         trx.merchant = merchant_match.group(1).strip()
@@ -55,25 +55,52 @@ class MandiriExtractor(BaseExtractor):
         trx_id_match = re.search(r"No\. Referensi\s*(\d+)", email)
         trx.trx_id = trx_id_match.group(1) if trx_id_match else None
 
-        date_match = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email)
-        time_match = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email)
+        # date_match = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email)
+        # time_match = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email)
+
+        # bulan_map = {
+        #     "Jan": "Jan", "Feb": "Feb", "Mar": "Mar",
+        #     "Apr": "Apr", "Mei": "May", "Jun": "Jun",
+        #     "Jul": "Jul", "Agt": "Aug", "Sep": "Sep",
+        #     "Okt": "Oct", "Nov": "Nov", "Des": "Dec"
+        # }
+
+        # date_match = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email)
+        # time_match = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email)
+
+        # date_str = date_match.group(1)
+        # time_str = time_match.group(1)
+            
+        # for indo, eng in bulan_map.items():
+        #     date_str = date_str.replace(indo, eng)
+            
+        # trx.date = datetime.datetime.strptime(f"{date_str} {time_str}", "%d %b %Y %H:%M:%S")
+
+#         bulan_map = {
+#     "Jan": "Jan", "Feb": "Feb", "Mar": "Mar",
+#     "Apr": "Apr", "Mei": "May", "Jun": "Jun",
+#     "Jul": "Jul", "Agu": "Aug", "Sep": "Sep",
+#     "Okt": "Oct", "Nov": "Nov", "Des": "Dec"
+# }
+
+#         date_str = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email).group(1)
+#         time_str = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email).group(1)
+#         date_str = "".join(date_str.replace(indo, eng) for indo, eng in bulan_map.items())
+#         trx.date = datetime.datetime.strptime(f"{date_str} {time_str}", "%d %b %Y %H:%M:%S")
 
         bulan_map = {
-            "Jan": "Jan", "Feb": "Feb", "Mar": "Mar",
-            "Apr": "Apr", "Mei": "May", "Jun": "Jun",
-            "Jul": "Jul", "Agt": "Aug", "Sep": "Sep",
-            "Okt": "Oct", "Nov": "Nov", "Des": "Dec"
-        }
+    "Jan": "Jan", "Feb": "Feb", "Mar": "Mar",
+    "Apr": "Apr", "Mei": "May", "Jun": "Jun",
+    "Jul": "Jul", "Agu": "Aug", "Sep": "Sep",
+    "Okt": "Oct", "Nov": "Nov", "Des": "Dec"
+}
 
-        date_match = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email)
-        time_match = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email)
+        date_str = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email).group(1)
+        time_str = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email).group(1)
 
-        date_str = date_match.group(1)
-        time_str = time_match.group(1)
-            
         for indo, eng in bulan_map.items():
             date_str = date_str.replace(indo, eng)
-            
+
         trx.date = datetime.datetime.strptime(f"{date_str} {time_str}", "%d %b %Y %H:%M:%S")
 
         return [trx]
@@ -108,25 +135,40 @@ class MandiriExtractor(BaseExtractor):
         trx_id_match = re.search(r"No\. Referensi\s*(\d+)", email)
         trx.trx_id = trx_id_match.group(1) if trx_id_match else None
 
-        date_match = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email)
-        time_match = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email)
+        # date_match = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email)
+        # time_match = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email)
+
+        # bulan_map = {
+        #     "Jan": "Jan", "Feb": "Feb", "Mar": "Mar",
+        #     "Apr": "Apr", "Mei": "May", "Jun": "Jun",
+        #     "Jul": "Jul", "Agt": "Aug", "Sep": "Sep",
+        #     "Okt": "Oct", "Nov": "Nov", "Des": "Dec"
+        # }
+
+        # date_match = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email)
+        # time_match = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email)
+
+        # date_str = date_match.group(1)
+        # time_str = time_match.group(1)
+            
+        # for indo, eng in bulan_map.items():
+        #     date_str = date_str.replace(indo, eng)
+            
+        # trx.date = datetime.datetime.strptime(f"{date_str} {time_str}", "%d %b %Y %H:%M:%S")
 
         bulan_map = {
-            "Jan": "Jan", "Feb": "Feb", "Mar": "Mar",
-            "Apr": "Apr", "Mei": "May", "Jun": "Jun",
-            "Jul": "Jul", "Agt": "Aug", "Sep": "Sep",
-            "Okt": "Oct", "Nov": "Nov", "Des": "Dec"
-        }
+    "Jan": "Jan", "Feb": "Feb", "Mar": "Mar",
+    "Apr": "Apr", "Mei": "May", "Jun": "Jun",
+    "Jul": "Jul", "Agu": "Aug", "Sep": "Sep",
+    "Okt": "Oct", "Nov": "Nov", "Des": "Dec"
+}
 
-        date_match = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email)
-        time_match = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email)
+        date_str = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email).group(1)
+        time_str = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email).group(1)
 
-        date_str = date_match.group(1)
-        time_str = time_match.group(1)
-            
         for indo, eng in bulan_map.items():
             date_str = date_str.replace(indo, eng)
-            
+
         trx.date = datetime.datetime.strptime(f"{date_str} {time_str}", "%d %b %Y %H:%M:%S")
 
         return [trx]
@@ -157,8 +199,7 @@ class MandiriExtractor(BaseExtractor):
             trx.currency = "IDR"
         trx.amount = int(Decimal(amount.replace(".", "").replace(",", ".")))
 
-        description_match = re.search(r"Keterangan\s*\\-?", email)
-        trx.description = description_match
+        trx.description = "-"
 
         merchant_match = re.search(r"Penerima\s*\n\s*####\s*(.+)", email)
         trx.merchant = merchant_match.group(1).strip()
@@ -166,25 +207,40 @@ class MandiriExtractor(BaseExtractor):
         trx_id_match = re.search(r"No\. Referensi\s*(\d+)", email)
         trx.trx_id = trx_id_match.group(1) if trx_id_match else None
 
-        date_match = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email)
-        time_match = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email)
+        # date_match = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email)
+        # time_match = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email)
+
+        # bulan_map = {
+        #     "Jan": "Jan", "Feb": "Feb", "Mar": "Mar",
+        #     "Apr": "Apr", "Mei": "May", "Jun": "Jun",
+        #     "Jul": "Jul", "Agt": "Aug", "Sep": "Sep",
+        #     "Okt": "Oct", "Nov": "Nov", "Des": "Dec"
+        # }
+
+        # date_match = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email)
+        # time_match = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email)
+
+        # date_str = date_match.group(1)
+        # time_str = time_match.group(1)
+            
+        # for indo, eng in bulan_map.items():
+        #     date_str = date_str.replace(indo, eng)
+            
+        # trx.date = datetime.datetime.strptime(f"{date_str} {time_str}", "%d %b %Y %H:%M:%S")
 
         bulan_map = {
-            "Jan": "Jan", "Feb": "Feb", "Mar": "Mar",
-            "Apr": "Apr", "Mei": "May", "Jun": "Jun",
-            "Jul": "Jul", "Agt": "Aug", "Sep": "Sep",
-            "Okt": "Oct", "Nov": "Nov", "Des": "Dec"
-        }
+    "Jan": "Jan", "Feb": "Feb", "Mar": "Mar",
+    "Apr": "Apr", "Mei": "May", "Jun": "Jun",
+    "Jul": "Jul", "Agu": "Aug", "Sep": "Sep",
+    "Okt": "Oct", "Nov": "Nov", "Des": "Dec"
+}
 
-        date_match = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email)
-        time_match = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email)
+        date_str = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email).group(1)
+        time_str = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email).group(1)
 
-        date_str = date_match.group(1)
-        time_str = time_match.group(1)
-            
         for indo, eng in bulan_map.items():
             date_str = date_str.replace(indo, eng)
-            
+
         trx.date = datetime.datetime.strptime(f"{date_str} {time_str}", "%d %b %Y %H:%M:%S")
 
         return [trx]
@@ -192,9 +248,12 @@ class MandiriExtractor(BaseExtractor):
     def extract(self, content: EmailContent) -> list[TransactionData]:
         email = content.get_plaintext()
         if "Transfer Berhasil" in email:
+            print("Transfer Berhasil")
             return self.extract_transfer(email)
         elif "Top-up Berhasil" in email:
+            print("Top-up Berhasil")
             return self.extract_topup(email)
         elif "Pembayaran Berhasil" in email:
+            print("Pembayaran Berhasil")
             return self.extract_payment(email)
         return []
