@@ -10,7 +10,7 @@ class OCBCExtractor(BaseExtractor):
         """
         Check if the email matches the OCBC payment receipt format.
         """
-        return (title.find("Successful Payment to ") or title.find(" Transfer Dana ") or title.find("Successful QR Payment ") or title.find("Successful Funds Transfer with ")) and (email_from == "onlinetransaction@ocbc.id" or email_from == "notifikasi@ocbc.id" or email_from == "notifikasi@ocbcnisp.com")
+        return (title.endswith("Transfer Dana Masuk") or title.startswith("Successful Payment ") or title.startswith("Successful QR Payment ") or title.startswith("Successful Funds Transfer ")) and (email_from == "onlinetransaction@ocbc.id" or email_from == "notifikasi@ocbc.id" or email_from == "notifikasi@ocbcnisp.com" or email_from == "fxsurya27@gmail.com")
 
     def extract(self, content: EmailContent) -> list[TransactionData]:
         """
@@ -85,28 +85,56 @@ class OCBCExtractor(BaseExtractor):
             trx.amount = Decimal(nominal_value)  # Convert to Decimal
             trx.fees = 0  # No fees for transfers
 
-        # Description (can be customized if needed, currently we set it as 'Transfer Dana')
-        trx.description = "Transfer Dana"
+        # Extract Description
+        description_pattern = r"Berita\s*:\s*(.*?)\s*(?=\n|Apabila)"
+        description_match = re.search(description_pattern, email)
+        if description_match:
+            trx.description = description_match.group(1)
 
+        # Extract Merchant
         merchant_pattern = r"Nama Penerima\s*:\s*(.*?)\s*(?=\n|No Rekening Penerima)"
         merchant_match = re.search(merchant_pattern, email)
         if merchant_match:
             trx.merchant = merchant_match.group(1)
 
+        # Mapping for Indonesian month to numeric representation
+        month_translation = {
+            "Januari": "01", "Februari": "02", "Maret": "03", "April": "04", "Mei": "05", 
+            "Juni": "06", "Juli": "07", "Agustus": "08", "September": "09", "Oktober": "10", 
+            "November": "11", "Desember": "12"
+        }
+
         # Extract Transaction Date
-        date_pattern = r"Tanggal Transaksi\s*:\s*(\d{2} \w+ \d{4})\s*"
+        date_pattern = r"Tanggal Transaksi\s*:\s*(\d{2})\s([A-Za-z]+)\s(\d{4})"
         date_match = re.search(date_pattern, email)
         if date_match:
-            trx.date = datetime.strptime(date_match.group(1), "%d %B %Y")
+            day = date_match.group(1)
+            month_indonesian = date_match.group(2)
+            year = date_match.group(3)
 
-        # 9. Extract Transaction Time
-        time_pattern = r"Waktu Transaksi\s*:\s*(\d{2}:\d{2}:\d{2})\s*"
+            # Translate month from Indonesian to numeric format
+            month_numeric = month_translation.get(month_indonesian, "00")  # Default to "00" if not found
+
+            # Combine into the final date string
+            date_str = f"{year}-{month_numeric}-{day}"
+
+        # Extract Transaction Time
+        time_pattern = r"Waktu Transaksi\s*:\s*(\d{2}):(\d{2}):(\d{2})"
         time_match = re.search(time_pattern, email)
         if time_match:
-            # Combine the date and time into a full datetime object
-            if trx.date:
-                time_str = time_match.group(1)
-                trx.date = datetime.combine(trx.date, datetime.strptime(time_str, "%H:%M:%S").time())
+            hour = time_match.group(1)
+            minute = time_match.group(2)
+            second = time_match.group(3)
+
+            # Combine into the final time string
+            time_str = f"{hour}:{minute}:{second}"
+        
+        # Combine date and time to form final datetime string
+        if date_match and time_match:
+            # Convert to a datetime object
+            final_datetime_str = f"{date_str} {time_str}"
+            trx.date = datetime.strptime(final_datetime_str, "%Y-%m-%d %H:%M:%S")
+            
 
     def _extract_qr_payment(self, email: str, trx: TransactionData) -> None:
         """
@@ -131,16 +159,18 @@ class OCBCExtractor(BaseExtractor):
             trx.merchant = merchant_match.group(1)
 
         # Extract fees
-        fees_pattern = r"Tip\s+IDR\s+([\d,\.]+)"
+        fees_pattern = r"Tip\sIDR\s([\d,]+(?:\.\d{2})?)"
         fees_match = re.search(fees_pattern, email)
         if fees_match:
-            trx.fees = Decimal(fees_match.group(1).replace(",", ""))
+            fees_str = fees_match.group(1).replace(",", "")
+            trx.fees = Decimal(fees_str.replace(".00", ""))
 
         # Extract amount
-        amount_pattern = r"Amount\s+Pay\s+IDR\s+([\d,\.]+)"
+        amount_pattern = r"Amount Pay\sIDR\s([\d,]+(?:\.\d{2})?)"
         amount_match = re.search(amount_pattern, email)
         if amount_match:
-            trx.amount = Decimal(amount_match.group(1).replace(",", ""))
+            amount_str = amount_match.group(1).replace(",", "")
+            trx.amount = Decimal(amount_str.replace(".00", ""))
             trx.currency = "IDR"
         
         # Extract description
@@ -183,14 +213,10 @@ class OCBCExtractor(BaseExtractor):
         if amount_match:
             trx.amount = Decimal(amount_match.group(1).replace(",", ""))
             trx.currency = "IDR"
-            trx.payment_method = "Bank Funds Transfer"
             trx.fees = 0  # No fees for funds transfer
 
         # Extract description
-        description_pattern = r"REMARK\s+([\w\s]+)"
-        description_match = re.search(description_pattern, email)
-        if description_match:
-            trx.description = description_match.group(1).strip()
+        trx.description = "Bank Funds Transfer"
 
 
     def _extract_top_up(self, email: str, trx: TransactionData) -> None:

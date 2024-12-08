@@ -1,6 +1,6 @@
 import re
 from decimal import Decimal
-import datetime
+from datetime import datetime
 from .base_extractor import BaseExtractor, EmailContent, TransactionData
 
 class OVOExtractor(BaseExtractor):
@@ -31,12 +31,38 @@ class OVOExtractor(BaseExtractor):
             trx.amount = Decimal(amount_str)
 
         # Extract transaction date
-        date_match = re.search(r"(\d{1,2} \w{3} \d{4}, \d{2}:\d{2})", email)
+        date_match = re.search(r"(\d{2})\s([A-Za-z]{3})\s(\d{2,4})(?:,\s(\d{2}):(\d{2})(?::(\d{2}))?)?", email)
         if date_match:
-            trx.date = datetime.datetime.strptime(date_match.group(1), "%d %b %Y, %H:%M")
+            # Extract day, month, year, and time components
+            day = date_match.group(1)
+            month = date_match.group(2)
+            year = date_match.group(3)
+            hour = date_match.group(4) or '00'  # Default to '00' if time is not provided
+            minute = date_match.group(5) or '00'  # Default to '00' if time is not provided
+            second = date_match.group(6) or '00'  # Default to '00' if time is not provided
+
+            # Convert 2-digit year to 4-digit year
+            if len(year) == 2:
+                year = "20" + year
+
+            # Mapping months to their numeric equivalents
+            month_translation = {
+                "Jan": "01", "Feb": "02", "Mar": "03", "Apr": "04", "May": "05", "Jun": "06",
+                "Jul": "07", "Aug": "08", "Sep": "09", "Oct": "10", "Nov": "11", "Dec": "12"
+            }
+
+            # Convert month to its numeric representation
+            month_numeric = month_translation.get(month, month)
+
+            # Construct the final formatted date string
+            formatted_date_str = f"{year}-{month_numeric}-{day} {hour}:{minute}:{second}"
+
+            # Convert to datetime object
+            trx.date = datetime.strptime(formatted_date_str, "%Y-%m-%d %H:%M:%S")
 
         # Extract merchant name
-        merchant_match = re.search(r"Nama Toko\s([A-Za-z\s]+),\s", email)
+        merchant_match = re.search(r"Nama Toko\s*([^\n]+?)\s+Lokasi", email)
+        r"Nama Toko\s+([^\n]+?)\s+Lokasi"
         if merchant_match:
             trx.merchant = merchant_match.group(1).strip()
 
@@ -52,7 +78,7 @@ class OVOExtractor(BaseExtractor):
             trx.payment_method = "OVO Points"
 
         # Extract fees
-        fees_match = re.search(r"Tip\sRp([\d,]+)", email)
+        fees_match = re.search(r"Tip\s*Rp([\d,]+)", email)
         if fees_match:
             trx.fees = fees_match.group(1)
 
