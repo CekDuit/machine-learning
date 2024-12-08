@@ -10,7 +10,7 @@ class OCBCExtractor(BaseExtractor):
         """
         Check if the email matches the OCBC payment receipt format.
         """
-        return (title.endswith("Transfer Dana Masuk") or title.startswith("Successful Payment ") or title.startswith("Successful QR Payment ") or title.startswith("Successful Funds Transfer ")) and (email_from == "onlinetransaction@ocbc.id" or email_from == "notifikasi@ocbc.id" or email_from == "notifikasi@ocbcnisp.com" or email_from == "fxsurya27@gmail.com")
+        return (title.endswith("Transfer Dana Masuk") or title.startswith("Successful Payment ") or title.startswith("Successful QR Payment ") or title.startswith("Pembayaran QR Berhasil ") or title.startswith("Successful Funds Transfer ")) and (email_from == "onlinetransaction@ocbc.id" or email_from == "notifikasi@ocbc.id" or email_from == "notifikasi@ocbcnisp.com")
 
     def extract(self, content: EmailContent) -> list[TransactionData]:
         """
@@ -23,7 +23,7 @@ class OCBCExtractor(BaseExtractor):
 
         trx = TransactionData()
         trx.is_incoming = False
-        trx.payment_method = "OCBC"
+        #trx.payment_method = "OCBC"
 
         if self._is_extract_transfer(email):
             self._extract_transfer(email, trx)
@@ -48,7 +48,7 @@ class OCBCExtractor(BaseExtractor):
         """
         Check if the email is a QR payment receipt.
         """
-        if "QR Payment" in email:
+        if "QR" in email:
             return True
         return False
     
@@ -86,13 +86,13 @@ class OCBCExtractor(BaseExtractor):
             trx.fees = 0  # No fees for transfers
 
         # Extract Description
-        description_pattern = r"Berita\s*:\s*(.*?)\s*(?=\n|Apabila)"
+        description_pattern = r"menerima\s*(.*?)\s*(?=\n|dengan)"
         description_match = re.search(description_pattern, email)
         if description_match:
             trx.description = description_match.group(1)
 
         # Extract Merchant
-        merchant_pattern = r"Nama Penerima\s*:\s*(.*?)\s*(?=\n|No Rekening Penerima)"
+        merchant_pattern = r"Bank Penerima\s*:\s*(.*?)\s*(?=\n|Nama Penerima)"
         merchant_match = re.search(merchant_pattern, email)
         if merchant_match:
             trx.merchant = merchant_match.group(1)
@@ -134,50 +134,98 @@ class OCBCExtractor(BaseExtractor):
             # Convert to a datetime object
             final_datetime_str = f"{date_str} {time_str}"
             trx.date = datetime.strptime(final_datetime_str, "%Y-%m-%d %H:%M:%S")
+
+        # Extract Payment Method
+        payment_method_pattern = r"Bank Pengirim\s*:\s*(.*?)\s*(?=\n|Nama Pengirim)"
+        payment_method_match = re.search(payment_method_pattern, email)
+        if payment_method_match:
+            trx.payment_method = payment_method_match.group(1)
             
 
     def _extract_qr_payment(self, email: str, trx: TransactionData) -> None:
         """
         Extract details from the QR payment email format.
         """
-        # Extract trx_id
-        ref_match = r"Reff\s+No\.\s+(\S+)"
-        ref_match = re.search(ref_match, email)
-        if ref_match:
-            trx.trx_id = ref_match.group(1)
+        if "QR Payment" in email:
+            # Extract trx_id
+            ref_match = r"Reff\s+No\.\s+(\S+)"
+            ref_match = re.search(ref_match, email)
+            if ref_match:
+                trx.trx_id = ref_match.group(1)
 
-        # Extract date & time
-        date_pattern = r"Payment\s+Date:\s+(\d{2}/\d{2}/\d{4})"
-        date_match = re.search(date_pattern, email)
-        if date_match:
-            trx.date = datetime.strptime(date_match.group(1), "%d/%m/%Y").strftime("%Y-%m-%d")
+            # Extract date & time
+            date_pattern = r"Payment\s+Date:\s+(\d{2}/\d{2}/\d{4})"
+            date_match = re.search(date_pattern, email)
+            if date_match:
+                trx.date = datetime.strptime(date_match.group(1), "%d/%m/%Y").strftime("%Y-%m-%d")
 
-        # Extract merchant name
-        merchant_pattern = r"Merchant\s+([A-Za-z0-9\s\(\)\-\,\.]+?)(?=\s|$)"
-        merchant_match = re.search(merchant_pattern, email)
-        if merchant_match:
-            trx.merchant = merchant_match.group(1)
+            # Extract merchant name
+            merchant_pattern = r"Merchant\sPAN\s[\d]+\s+([^\n]+?)(?=\s+\w+|$)"
+            merchant_match = re.search(merchant_pattern, email)
+            if merchant_match:
+                trx.merchant = merchant_match.group(1)
 
-        # Extract fees
-        fees_pattern = r"Tip\sIDR\s([\d,]+(?:\.\d{2})?)"
-        fees_match = re.search(fees_pattern, email)
-        if fees_match:
-            fees_str = fees_match.group(1).replace(",", "")
-            trx.fees = Decimal(fees_str.replace(".00", ""))
+            # Extract fees
+            fees_pattern = r"Tip\sIDR\s([\d,]+(?:\.\d{2})?)"
+            fees_match = re.search(fees_pattern, email)
+            if fees_match:
+                fees_str = fees_match.group(1).replace(",", "")
+                trx.fees = Decimal(fees_str.replace(".00", ""))
 
-        # Extract amount
-        amount_pattern = r"Amount Pay\sIDR\s([\d,]+(?:\.\d{2})?)"
-        amount_match = re.search(amount_pattern, email)
-        if amount_match:
-            amount_str = amount_match.group(1).replace(",", "")
-            trx.amount = Decimal(amount_str.replace(".00", ""))
-            trx.currency = "IDR"
+            # Extract amount
+            amount_pattern = r"Amount Pay\sIDR\s([\d,]+(?:\.\d{2})?)"
+            amount_match = re.search(amount_pattern, email)
+            if amount_match:
+                amount_str = amount_match.group(1).replace(",", "")
+                trx.amount = Decimal(amount_str.replace(".00", ""))
+                trx.currency = "IDR"
+
+            # Extract description
+            description_pattern = r"(QR\s+Payment\s+Merchant\s+PAN\s+\d{16})"
+            description_match = re.search(description_pattern, email)
+            if description_match:
+                trx.description = description_match.group(1)
         
-        # Extract description
-        description_pattern = r"(QR\s+Payment\s+Merchant\s+PAN\s+\d{16})"
-        description_match = re.search(description_pattern, email)
-        if description_match:
-            trx.description = description_match.group(1)
+        elif "Pembayaran QR" in email:
+            # Extract trx_id
+            ref_match = r"No\.\s+Reff\s+(\S+)"
+            ref_match = re.search(ref_match, email)
+            if ref_match:
+                trx.trx_id = ref_match.group(1)
+
+            # Extract date
+            date_pattern = r"TANGGAL\s+PEMBAYARAN:\s+(\d{2}/\d{2}/\d{4})"
+            date_match = re.search(date_pattern, email)
+            if date_match:
+                trx.date = datetime.strptime(date_match.group(1), "%d/%m/%Y").strftime("%Y-%m-%d")
+            
+            # Extract merchant
+            merchant_pattern = r"PAN\sMerchant\s[\d]+\s+([^\n]+?)(?=\s+\w+|$)"
+            merchant_match = re.search(merchant_pattern, email)
+            if merchant_match:
+                trx.merchant = merchant_match.group(1)
+
+            # Extract fees
+            fees_pattern = r"Tip\sIDR\s([\d,]+(?:\.\d{2})?)"
+            fees_match = re.search(fees_pattern, email)
+            if fees_match:
+                fees_str = fees_match.group(1).replace(",", "")
+                trx.fees = Decimal(fees_str.replace(".00", ""))
+
+            # Extract amount
+            amount_pattern = r"Nominal Bayar\sIDR\s([\d,]+(?:\.\d{2})?)"
+            amount_match = re.search(amount_pattern, email)
+            if amount_match:
+                amount_str = amount_match.group(1).replace(",", "")
+                trx.amount = Decimal(amount_str.replace(".00", ""))
+                trx.currency = "IDR"
+
+            # Extract description
+            description_pattern = r"(Pembayaran\s+QR\s+PAN\s+Merchant\s+\d{16})"
+            description_match = re.search(description_pattern, email)
+            if description_match:
+                trx.description = description_match.group(1)
+
 
     def _extract_funds_transfer(self, email: str, trx: TransactionData) -> None:
         """
@@ -195,8 +243,8 @@ class OCBCExtractor(BaseExtractor):
         if date_match:
             trx.date = datetime.strptime(date_match.group(1), "%d %b %Y %H:%M:%S WIB").strftime("%Y-%m-%d %H:%M:%S")
 
-        # Extract merchant (FROM and TO fields)
-        merchant_pattern = r"TO\s+([A-Za-z\s]+)(?=\s+BANK|$)"
+        # Extract merchant
+        merchant_pattern = r"TO\s+[A-Za-z\s]+\s+([A-Za-z\s]+\s+[A-Za-z\s]+)"
         merchant_match = re.search(merchant_pattern, email)
         if merchant_match:
             trx.merchant = merchant_match.group(1).strip()
@@ -215,8 +263,14 @@ class OCBCExtractor(BaseExtractor):
             trx.currency = "IDR"
             trx.fees = 0  # No fees for funds transfer
 
+        # Extract payment method
+        payment_method_pattern = r"FROM\s+[A-Za-z\s]+\s+([A-Za-z]+)\s+IDR"
+        payment_method_match = re.search(payment_method_pattern, email)
+        if payment_method_match:
+            trx.payment_method = payment_method_match.group(1)
+
         # Extract description
-        trx.description = "Bank Funds Transfer"
+        trx.description = "-"
 
 
     def _extract_top_up(self, email: str, trx: TransactionData) -> None:
@@ -241,12 +295,13 @@ class OCBCExtractor(BaseExtractor):
             trx.fees = 0  # No fees for top-up
 
         # Set description
-        trx.description = "Top-up Payment"
+        trx.description = "-"
 
         # Set merchant name
         merchant_pattern = r"TO\s*(.*?)\s*\d{10,}"
         merchant_match = re.search(merchant_pattern, email)
-        trx.merchant = merchant_match.group(1) if merchant_match else None
+        if merchant_match:
+            trx.merchant = merchant_match.group(1)
 
         # Extract transaction date
         date_pattern = r"PAYMENT DATE:\s*(\d{2} \w+ \d{4} \d{2}:\d{2}:\d{2})"
