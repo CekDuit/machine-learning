@@ -147,21 +147,16 @@ class PaypalExtractor(BaseExtractor):
         # amount = currency_amount_match.group(1).replace(".", "").replace(",", ".")  
         # trx.amount = Decimal(amount)
 
-        currency_amount_match = re.search(r"Total\s*€\s*([\d,\.]+)\s*€\s*(\w+)", email)
+        # currency_amount_match = re.search(r"Total\s*€\s*([\d,\.]+)\s*€\s*(\w+)", email)
 
-        trx.currency = currency_amount_match.group(2).strip()
-        amount = currency_amount_match.group(1).replace(",", ".")  # Ubah koma menjadi titik untuk Decimal
-        trx.amount = Decimal(amount)
+        # trx.currency = currency_amount_match.group(2).strip()
+        # amount = currency_amount_match.group(1).replace(",", ".")  # Ubah koma menjadi titik untuk Decimal
+        # trx.amount = Decimal(amount)
 
-            # Ambil simbol mata uang
-        # currency_symbol = currency_amount_match.group(1)
-        # # Ambil jumlah angka
-        # amount = currency_amount_match.group(2).replace(",", ".")  # Ubah koma ke titik
-        # # Ambil kode mata uang (jika ada), atau gunakan simbol sebagai default
-        # currency_code = currency_amount_match.group(3) if currency_amount_match.group(3) else currency_symbol
-        
-        # # Konversi ke Decimal untuk keamanan finansial
-        # amount_decimal = Decimal(amount)
+        currency_amount_match = re.search(r"Total\s*([€£$])\s*([\d,\.]+)\s*\1\s*(\w+)", email)
+
+        trx.currency = currency_amount_match.group(3).strip()
+        trx.amount = Decimal(currency_amount_match.group(2).replace(",", "."))
 
         description_match = re.search(r"(?:CATATAN ANDA UNTUK|YOUR NOTES FOR).*?\n\s*\n\s*(.+?)\n", email, re.DOTALL)
         trx.description = description_match.group(1).strip() if description_match else ""
@@ -205,10 +200,17 @@ class PaypalExtractor(BaseExtractor):
         trx.payment_method = "Paypal"
 
         # Split per line and match
-        currency_amount_match = re.search(r"(?:Jumlah yang diterima|Amount received)\s*\$(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)\s*(\w+)", email)
-        trx.currency = currency_amount_match.group(2).strip()
-        amount = currency_amount_match.group(1).replace(".", "").replace(",", ".")  
-        trx.amount = Decimal(amount)
+        # currency_amount_match = re.search(r"(?:Jumlah yang diterima|Amount received)\s*\$(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)\s*(\w+)", email)
+        # trx.currency = currency_amount_match.group(2).strip()
+        # amount = currency_amount_match.group(1).replace(".", "").replace(",", ".")  
+        # trx.amount = Decimal(amount)
+
+        currency_amount_match = re.search(r"(?:Jumlah yang diterima|Amount received)\s*([\$\€])(\d{1,3}(?:[\.\,]\d{3})*(?:[\.,]\d{2})?)\s*(\w+)",email)
+
+        currency_symbol = currency_amount_match.group(1).strip()
+        raw_amount = currency_amount_match.group(2)
+        trx.currency = currency_amount_match.group(3).strip()
+        trx.amount = Decimal(raw_amount.replace(".", "").replace(",", ".") if ',' in raw_amount else raw_amount.replace(",", ""))
 
         description_match = re.search(r"(?:CATATAN|NOTED).*?\n\s*\n\s*(.+?)\n", email, re.DOTALL)
         trx.description = description_match.group(1).strip() if description_match else ""
