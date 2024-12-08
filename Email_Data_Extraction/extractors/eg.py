@@ -14,37 +14,45 @@ class EGExtractor(BaseExtractor):
         """
         Extract the transaction data from the email.
         """
-        email_text = content.get_plaintext()
+        email = content.get_plaintext()
 
         # Initialize a TransactionData object
         trx = TransactionData()
         trx.is_incoming = False
-        trx.payment_method = "e-wallet"
         trx.currency = "IDR"
 
         # Extract invoice ID
         trx_id_pattern = r"INVOICE ID:\s*([A-Za-z0-9]+)"
-        trx_id_match = re.search(trx_id_pattern, email_text)
+        trx_id_match = re.search(trx_id_pattern, email)
         if trx_id_match:
             trx.trx_id = trx_id_match.group(1)
 
         # Regex pattern for Description (Game Name), Publisher, and Amount (Price)
-        description_pattern = r"Price:\s*([A-Za-z0-9\s:]+)\s+([A-Za-z0-9\s\.]+)\s+IDR\s*Rp\s([\d,\.]+)"
+        description_pattern = r"Price:\s*([A-Za-z0-9\s:]+)\s+([A-Za-z0-9\s\.]+)\sIDR\s*Rp\s([\d,]+)"
         # Applying the regex to extract values
-        description_match = re.search(description_pattern, email_text)
+        description_match = re.search(description_pattern, email)
         if description_match:
             trx.description = description_match.group(1) + " " + description_match.group(2)  # Description (Game Name + Publisher)
-            trx.amount = Decimal(description_match.group(3).replace(",", ""))  # Amount (Price)
+            trx.amount = Decimal(description_match.group(3).replace(".", "").replace(",", ""))  # Amount (Price)
             trx.fees = 0  # No fees for EG transactions
 
         # Regex for Order Date and Source
         order_date_pattern = r"Source:\s*([A-Za-z\s]+)\s+([A-Za-z]+\s\d{1,2},\s\d{4})\s*(.*)"
-        order_date_match = re.search(order_date_pattern, email_text)
+        order_date_match = re.search(order_date_pattern, email)
         if order_date_match:
             order_date_str = order_date_match.group(2)
             trx.merchant = order_date_match.group(3).strip()
             # Convert order date to yyyy-MM-dd format
             trx.date = datetime.strptime(order_date_str, "%B %d, %Y").strftime("%Y-%m-%d")
+
+        # Extract payment method
+        if "PAID FROM" in email:
+            payment_method_pattern = r"PAID FROM:\s*([A-Za-z]+)\[IDR\]"
+            payment_method_match = re.search(payment_method_pattern, email)
+            if payment_method_match:
+                trx.payment_method = payment_method_match.group(1)
+        else:
+            trx.payment_method = "-"
         
         # Return the populated TransactionData object
         return [trx]
