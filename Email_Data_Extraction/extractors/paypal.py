@@ -54,12 +54,12 @@ class PaypalExtractor(BaseExtractor):
         # amount = currency_amount_match.group(1).replace(",", ".")  # Ubah koma menjadi titik
         # trx.amount = Decimal(amount)
 
-            # Pattern untuk mencocokkan kedua format
         patterns = [
-            r"You paid\s*\$([\d,\.]+)\s*(\w+)",           # Format: You paid $182,00 USD
-            r"Payment\s*\$([\d,\.]+)\s*\$\s*(\w+)"        # Format: Payment $5,00 $ USD
-        ]
-        
+    r"You paid\s*\$([\d,\.]+)\s*(\w+)",         
+    r"Payment\s*\$([\d,\.]+)\s*\$\s*(\w+)",       
+    r"Anda membayar\s*\$([\d,\.]+)\s*(\w+)"       
+]
+
         for pattern in patterns:
             currency_amount_match = re.search(pattern, email)
             if currency_amount_match:
@@ -239,9 +239,12 @@ class PaypalExtractor(BaseExtractor):
     def extract(self, content: EmailContent) -> list[TransactionData]:
         email = content.get_plaintext()
         if "anda mengirim" in email.lower() or "you sent" in email.lower():
+            print("masuk anda mengirim")
             return self.extractPembayaran(email)
-        elif "anda menerima" in email.lower() or "you've received" in email.lower():
+        elif "anda menerima" in email.lower() or "has sent you" in email.lower():
+            print("masuk anda menerima")
             return self.extractPenerimaan(email)
-        elif "your payment" in email.lower() or "pembayaran anda" in email.lower():
+        elif "pembayaran anda" in email.lower() or "you paid" in email.lower():
+            print("masuk anda payment")
             return self.extractPembayaranPayment(email)
         return []
