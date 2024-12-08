@@ -49,32 +49,75 @@ class PaypalExtractor(BaseExtractor):
         # amount = currency_amount_match.group(1).replace(".", "").replace(",", ".")  
         # trx.amount = Decimal(amount)
 
-        currency_amount_match = re.search(r"You paid\s*\$([\d,\.]+)\s*(\w+)", email)
-        trx.currency = currency_amount_match.group(2).strip()  # Ambil 'USD'
-        amount = currency_amount_match.group(1).replace(",", ".")  # Ubah koma menjadi titik
-        trx.amount = Decimal(amount)
+        # currency_amount_match = re.search(r"You paid\s*\$([\d,\.]+)\s*(\w+)", email)
+        # trx.currency = currency_amount_match.group(2).strip()  # Ambil 'USD'
+        # amount = currency_amount_match.group(1).replace(",", ".")  # Ubah koma menjadi titik
+        # trx.amount = Decimal(amount)
+
+            # Pattern untuk mencocokkan kedua format
+        patterns = [
+            r"You paid\s*\$([\d,\.]+)\s*(\w+)",           # Format: You paid $182,00 USD
+            r"Payment\s*\$([\d,\.]+)\s*\$\s*(\w+)"        # Format: Payment $5,00 $ USD
+        ]
+        
+        for pattern in patterns:
+            currency_amount_match = re.search(pattern, email)
+            if currency_amount_match:
+                currency = currency_amount_match.group(2).strip()
+                amount = currency_amount_match.group(1).replace(",", ".")
+                trx.amount = Decimal(amount)
+                trx.currency = currency
 
         description_match = re.search(r"(?:CATATAN ANDA UNTUK|YOUR NOTES FOR).*?\n\s*\n\s*(.+?)\n", email, re.DOTALL)
         trx.description = description_match.group(1).strip() if description_match else ""
 
         trx.merchant = "Paypal"
 
+        # date_match = re.search(r"(?:Tanggal transaksi|Transaction date)\s*\n\s*(.+)", email)
+        # date_str = date_match.group(1).strip()
+        # bulan_map = {
+        #     "Januari": "January", "Februari": "February", "Maret": "March",
+        #     "April": "April", "Mei": "May", "Juni": "June",
+        #     "Juli": "July", "Agustus": "August", "September": "September",
+        #     "Oktober": "October", "November": "November", "Desember": "December"
+        # }
+        # for indo, eng in bulan_map.items():
+        #     date_str = date_str.replace(indo, eng)
+
+        # try:
+        #     trx.date = datetime.datetime.strptime(date_str, "%d %b %Y")
+        # except ValueError:
+        #     trx.date = datetime.datetime.strptime(date_str, "%d %B %Y")
+
         date_match = re.search(r"(?:Tanggal transaksi|Transaction date)\s*\n\s*(.+)", email)
         date_str = date_match.group(1).strip()
+        
         bulan_map = {
             "Januari": "January", "Februari": "February", "Maret": "March",
             "April": "April", "Mei": "May", "Juni": "June",
             "Juli": "July", "Agustus": "August", "September": "September",
             "Oktober": "October", "November": "November", "Desember": "December"
         }
+        
         for indo, eng in bulan_map.items():
             date_str = date_str.replace(indo, eng)
-
-        try:
-            trx.date = datetime.datetime.strptime(date_str, "%d %b %Y")
-        except ValueError:
-            trx.date = datetime.datetime.strptime(date_str, "%d %B %Y")
-
+        
+        date_str = re.sub(r'\s+\d{2}\.\d{2}\.\d{2}\s+(?:WIB|WITA|WIT)', '', date_str)
+  
+        date_formats = [
+            "%d %B %Y", 
+            "%d %b %Y",
+            "%d %B %Y %H.%M.%S WIB",  
+            "%d %B %Y %H.%M.%S WITA", 
+            "%d %B %Y %H.%M.%S WIT"  
+        ]
+        
+        for date_format in date_formats:
+            try:
+                trx.date = datetime.datetime.strptime(date_str, date_format)
+            except ValueError:
+                continue
+    
         trx_id_match = re.search(r"(?:ID transaksi|Transaction ID)\s*(\S+)", email)
         trx.trx_id = trx_id_match.group(1) if trx_id_match else None
 
@@ -109,6 +152,16 @@ class PaypalExtractor(BaseExtractor):
         trx.currency = currency_amount_match.group(2).strip()
         amount = currency_amount_match.group(1).replace(",", ".")  # Ubah koma menjadi titik untuk Decimal
         trx.amount = Decimal(amount)
+
+            # Ambil simbol mata uang
+        # currency_symbol = currency_amount_match.group(1)
+        # # Ambil jumlah angka
+        # amount = currency_amount_match.group(2).replace(",", ".")  # Ubah koma ke titik
+        # # Ambil kode mata uang (jika ada), atau gunakan simbol sebagai default
+        # currency_code = currency_amount_match.group(3) if currency_amount_match.group(3) else currency_symbol
+        
+        # # Konversi ke Decimal untuk keamanan finansial
+        # amount_decimal = Decimal(amount)
 
         description_match = re.search(r"(?:CATATAN ANDA UNTUK|YOUR NOTES FOR).*?\n\s*\n\s*(.+?)\n", email, re.DOTALL)
         trx.description = description_match.group(1).strip() if description_match else ""
