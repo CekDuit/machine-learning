@@ -10,7 +10,7 @@ class OCBCExtractor(BaseExtractor):
         """
         Check if the email matches the OCBC payment receipt format.
         """
-        return (title.endswith("Transfer Dana Masuk") or title.startswith("Successful Payment ") or title.startswith("Successful QR Payment ") or title.startswith("Pembayaran QR Berhasil ") or title.startswith("Successful Funds Transfer ")) and (email_from == "onlinetransaction@ocbc.id" or email_from == "notifikasi@ocbc.id" or email_from == "notifikasi@ocbcnisp.com")
+        return (title.endswith("Transfer Dana Masuk") or title.startswith("Successful Payment ") or title.startswith("Successful QR Payment ") or title.startswith("Pembayaran QR Berhasil ") or title.startswith("Successful Funds Transfer ")) and (email_from == "onlinetransaction@ocbc.id" or email_from == "notifikasi@ocbc.id" or email_from == "notifikasi@ocbcnisp.com") 
 
     def extract(self, content: EmailContent) -> list[TransactionData]:
         """
@@ -23,7 +23,7 @@ class OCBCExtractor(BaseExtractor):
 
         trx = TransactionData()
         trx.is_incoming = False
-        #trx.payment_method = "OCBC"
+        trx.payment_method = "OCBC"
 
         if self._is_extract_transfer(email):
             self._extract_transfer(email, trx)
@@ -48,7 +48,7 @@ class OCBCExtractor(BaseExtractor):
         """
         Check if the email is a QR payment receipt.
         """
-        if "QR" in email:
+        if "QR Payment" in email or "Pembayaran QR" in email:
             return True
         return False
     
@@ -64,7 +64,7 @@ class OCBCExtractor(BaseExtractor):
         """
         Check if the email is in the 'Successful Bill Payment' format for top-up.
         """
-        if "Successful Bill Payment" in email or "Top Up" in email or "Successful Payment" in email:
+        if "Successful Payment" in email or "Top Up" in email in email:
             return True
         return False
     
