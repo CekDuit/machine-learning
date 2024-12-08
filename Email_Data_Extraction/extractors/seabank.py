@@ -12,7 +12,6 @@ class SeaBankExtractor(BaseExtractor):
         ]
         valid_emails = [
             "alerts@seabank.co.id"
-            # "m320b4ky1551@bangkit.academy"
         ]
         is_title_valid = any(valid_title in title.lower() for valid_title in valid_titles)
         is_email_valid = any(valid_email in email_from.lower() for valid_email in valid_emails)
