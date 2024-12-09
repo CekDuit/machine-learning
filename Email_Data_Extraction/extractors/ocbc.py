@@ -148,7 +148,7 @@ class OCBCExtractor(BaseExtractor):
         """
         if "QR Payment" in email:
             # Extract trx_id
-            ref_match = r"Reff\s+No\.\s+(\S+)"
+            ref_match = r"Reference No.:\s*(\S+)"
             ref_match = re.search(ref_match, email)
             if ref_match:
                 trx.trx_id = ref_match.group(1)
@@ -188,7 +188,7 @@ class OCBCExtractor(BaseExtractor):
         
         elif "Pembayaran QR" in email:
             # Extract trx_id
-            ref_match = r"No\.\s+Reff\s+(\S+)"
+            ref_match = r"No. Referensi:\s*(\S+)"
             ref_match = re.search(ref_match, email)
             if ref_match:
                 trx.trx_id = ref_match.group(1)
@@ -256,10 +256,10 @@ class OCBCExtractor(BaseExtractor):
             trx.fees = Decimal(fees_match.group(1).replace(",", ""))
 
         # Extract the amount
-        amount_pattern = r"####\s+IDR\s+([\d,]+)"
+        amount_pattern = r"####\s+IDR\s+([\d.,]+)"
         amount_match = re.search(amount_pattern, email)
         if amount_match:
-            trx.amount = Decimal(amount_match.group(1).replace(",", ""))
+            trx.amount = Decimal(amount_match.group(1).replace(",", "").replace(".", ""))
             trx.currency = "IDR"
             trx.fees = 0  # No fees for funds transfer
 
