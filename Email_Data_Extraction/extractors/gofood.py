@@ -55,8 +55,15 @@ class GoFoodExtractor(BaseExtractor):
         # pattern = r"Delivered on .*? from\s*\n(.*?)(?=\n)"
         # trx.merchant = re.search(pattern, email).group(1).split(",")[0]
 
-        pattern = r"from\s*\n(.*?)(?=,|\n)"
-        trx.merchant = re.search(pattern, email).group(1)
+        # pattern = r"from\s*\n(.*?)(?=,|\n)"
+        # trx.merchant = re.search(pattern, email).group(1)
+
+        pattern = r"(?:from|dari)\s*\n(.*?)(?=,|\n)"
+        match = re.search(pattern, email)
+        if match:
+            trx.merchant = match.group(1)
+        else:
+            trx.merchant = None
 
         total_payment_match = re.search(
             r"Total (payment|pembayaran)\s*Rp([\d.]+)", email
