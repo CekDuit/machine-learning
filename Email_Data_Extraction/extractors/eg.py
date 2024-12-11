@@ -25,15 +25,16 @@ class EGExtractor(BaseExtractor):
         trx_id_pattern = r"INVOICE ID:\s*([A-Za-z0-9]+)"
         trx_id_match = re.search(trx_id_pattern, email)
         if trx_id_match:
-            trx.trx_id = trx_id_match.group(1)
+            trx.trx_id = str(trx_id_match.group(1))
 
         # Regex pattern for Description (Game Name), Publisher, and Amount (Price)
-        description_pattern = r"Price:\s*([A-Za-z0-9\s:]+)\s+([A-Za-z0-9\s\.]+)\sIDR\s*Rp\s([\d,]+)"
+        #description_pattern = r"Price:\s*([A-Za-z0-9\s:]+)\s+([A-Za-z0-9\s\.]+)\sIDR\s*Rp\s([\d,]+)"
+        description_pattern = r"Price:\s*([^\d]+)\s+([\w\s.,&'-]+)\s+Rp([\d,]+(?:\.\d{2})?)\s*IDR"
         # Applying the regex to extract values
         description_match = re.search(description_pattern, email)
         if description_match:
-            trx.description = description_match.group(1) + " " + description_match.group(2)  # Description (Game Name + Publisher)
-            trx.amount = Decimal(description_match.group(3).replace(".", "").replace(",", ""))  # Amount (Price)
+            trx.description = (description_match.group(1) + " " + description_match.group(2)).strip()  # Description (Game Name + Publisher)
+            trx.amount = Decimal(description_match.group(3).replace(".00", "").replace(",", ""))  # Amount (Price)
             trx.fees = 0  # No fees for EG transactions
 
         # Regex for Order Date and Source
@@ -43,7 +44,7 @@ class EGExtractor(BaseExtractor):
             order_date_str = order_date_match.group(2)
             trx.merchant = order_date_match.group(3).strip()
             # Convert order date to yyyy-MM-dd format
-            trx.date = datetime.strptime(order_date_str, "%B %d, %Y").strftime("%Y-%m-%d")
+            trx.date = datetime.strptime(order_date_str, "%B %d, %Y").strftime("%Y-%m-%d %H:%M:%S")
 
         # Extract payment method
         if "PAID FROM" in email:

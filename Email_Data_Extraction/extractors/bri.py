@@ -92,7 +92,7 @@ class BRIExtractor(BaseExtractor):
         ref_pattern = r"No\. Ref\s+(\d+)"
         ref_match = re.search(ref_pattern, email)
         if ref_match:
-            trx.trx_id = ref_match.group(1)
+            trx.trx_id = str(ref_match.group(1))
 
         # Extract date
         # Mapping for Indonesian months to English months
@@ -116,8 +116,7 @@ class BRIExtractor(BaseExtractor):
             date_str = f"{day} {month_english} {year}, {time}"
             try:
                 # Convert to datetime object and format as required
-                trx_date = datetime.strptime(date_str, "%d %b %Y, %H:%M:%S")
-                trx.date = trx_date.strftime("%Y-%m-%d %H:%M:%S")
+                trx.date = datetime.strptime(date_str, "%d %b %Y, %H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")
             except ValueError as e:
                 print(f"Error parsing date: {e}")
         else:
@@ -157,7 +156,7 @@ class BRIExtractor(BaseExtractor):
         ref_pattern = r"No\.\s*Ref\s*(\d+)"
         ref_match = re.search(ref_pattern, email)
         if ref_match:
-            trx.trx_id = ref_match.group(1)
+            trx.trx_id = str(ref_match.group(1))
 
         # Extract date
         # Mapping for Indonesian months to English months
@@ -185,8 +184,7 @@ class BRIExtractor(BaseExtractor):
 
             try:
                 # Convert to datetime object and format as required
-                trx_date = datetime.strptime(date_str, "%d %b %Y, %H:%M")
-                trx.date = trx_date.strftime("%Y-%m-%d %H:%M:%S")
+                trx.date = datetime.strptime(date_str, "%d %b %Y, %H:%M").strftime("%Y-%m-%d %H:%M:%S")
             except ValueError as e:
                 print(f"Error parsing date: {e}")
         else:
@@ -249,8 +247,7 @@ class BRIExtractor(BaseExtractor):
 
             # Convert to datetime object and format as required
             try:
-                trx_date = datetime.strptime(date_str, "%d %b %Y %H:%M:%S")
-                trx.date = trx_date.strftime("%Y-%m-%d %H:%M:%S")
+                trx.date = datetime.strptime(date_str, "%d %b %Y %H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")
             except ValueError as e:
                 print(f"Error parsing date: {e}")
         else:
@@ -259,7 +256,7 @@ class BRIExtractor(BaseExtractor):
         # Extract Reference Number (Nomor Referensi)
         ref_match = re.search(r"Nomor Referensi\s*(\S+)", email)
         if ref_match:
-            trx.trx_id = ref_match.group(1)
+            trx.trx_id = str(ref_match.group(1))
 
         # Extract merchant
         merchant_match = re.search(r"Institusi\s+([A-Za-z\s]+)\s+Nomor", email)
@@ -288,7 +285,7 @@ class BRIExtractor(BaseExtractor):
         ref_pattern = r"Nomor Referensi\s+(\d+)"
         ref_match = re.search(ref_pattern, email)
         if ref_match:
-            trx.trx_id = ref_match.group(1)
+            trx.trx_id = str(ref_match.group(1))
 
         # Extract date
         date_pattern = r"Tanggal\s+(\d{2}\s[A-Za-z]{3}\s\d{4}\s\|\s\d{2}:\d{2}:\d{2}\sWIB)"
@@ -346,13 +343,13 @@ class BRIExtractor(BaseExtractor):
             }
             month_english = month_translation[month]
             full_date = f"{day} {month_english} {year} {time}"
-            trx.date = datetime.strptime(full_date, "%d %B %Y %H:%M")
+            trx.date = datetime.strptime(full_date, "%d %B %Y %H:%M").strftime("%Y-%m-%d %H:%M:%S")
 
         # Extract reference number
         ref_pattern = r"Nomor Referensi(\d+)"
         ref_match = re.search(ref_pattern, email)
         if ref_match:
-            trx.trx_id = ref_match.group(1)
+            trx.trx_id = str(ref_match.group(1))
 
         # Extract billing details
         billing_pattern = r"TARIF/DAYA([A-Za-z0-9\s/]+)"
@@ -384,7 +381,7 @@ class BRIExtractor(BaseExtractor):
         ref_pattern = r"Nomor Referensi\s+(\d{4}\s\d{4}\s\d{4})"
         ref_match = re.search(ref_pattern, email)
         if ref_match:
-            trx.trx_id = ref_match.group(1)
+            trx.trx_id = str(ref_match.group(1))
 
         # Extract date
         # Mapping for Indonesian months to English months
@@ -408,8 +405,7 @@ class BRIExtractor(BaseExtractor):
             date_str = f"{day} {month_english} {year}, {time}"
             try:
                 # Convert to datetime object and format as required
-                trx_date = datetime.strptime(date_str, "%d %b %Y, %H:%M:%S")
-                trx.date = trx_date.strftime("%Y-%m-%d %H:%M:%S")
+                trx.date = datetime.strptime(date_str, "%d %b %Y, %H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")
             except ValueError as e:
                 print(f"Error parsing date: {e}")
         else:
@@ -451,7 +447,7 @@ class BRIExtractor(BaseExtractor):
         ref_pattern = r"Nomor Referensi\s+(\d+)"
         ref_match = re.search(ref_pattern, email)
         if ref_match:
-            trx.trx_id = ref_match.group(1)
+            trx.trx_id = str(ref_match.group(1))
 
         # Extract date
         # Mapping for Indonesian months to English months
@@ -474,8 +470,7 @@ class BRIExtractor(BaseExtractor):
             date_str = f"{day} {month_english} {year}, {time}"
             try:
                 # Convert to datetime object and format as required
-                trx_date = datetime.strptime(date_str, "%d %b %Y, %H:%M:%S")
-                trx.date = trx_date.strftime("%Y-%m-%d %H:%M:%S")
+                trx.date = datetime.strptime(date_str, "%d %b %Y, %H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")
             except ValueError as e:
                 print(f"Error parsing date: {e}")
         else:

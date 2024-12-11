@@ -27,7 +27,7 @@ class MobaPayExtractor(BaseExtractor):
         # Extract Order No.
         order_no_match = re.search(r"Order No\.\:\s*(\S+)", email)
         if order_no_match:
-            trx.trx_id = order_no_match.group(1)
+            trx.trx_id = str(order_no_match.group(1))
 
         # Extract Payment Time
         payment_time_match = re.search(r"Payment Time:\s*(\S+\s\d{2}:\d{2}:\d{2} \(\w{3}\))", email)

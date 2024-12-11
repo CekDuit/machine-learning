@@ -30,7 +30,7 @@ class UniPinExtractor(BaseExtractor):
         # Extract transaction time
         time_match = re.search(r"Waktu Pembayaran\s*(\d{1,2} \w{3} \d{4} \d{2}:\d{2}) \(\w{3} \+\d{1,2}\)", email)
         if time_match:
-            trx.date = datetime.datetime.strptime(time_match.group(1), "%d %b %Y %H:%M")
+            trx.date = datetime.datetime.strptime(time_match.group(1), "%d %b %Y %H:%M").strftime("%Y-%m-%d %H:%M:%S")
 
         # Extract payment method
         payment_method_match = re.search(r"Metode Pembayaran\s*(.*?)\s*Nomor Transaksi", email)
@@ -40,7 +40,7 @@ class UniPinExtractor(BaseExtractor):
         # Extract transaction number
         trx_id_match = re.search(r"Nomor Transaksi\s*(\S+)", email)
         if trx_id_match:
-            trx.trx_id = trx_id_match.group(1)
+            trx.trx_id = str(trx_id_match.group(1))
 
         # Extract product name
         product_match = re.search(r"Nama Barang\s*(.*?)\s*Nominal Transaksi", email)

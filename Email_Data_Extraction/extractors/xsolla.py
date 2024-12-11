@@ -19,11 +19,6 @@ class XsollaExtractor(BaseExtractor):
         # Clean up email content (replace multiple spaces and newlines with a single space)
         email = re.sub(r"\s+", " ", email)
 
-        # Debugging: Print cleaned-up email content to verify
-        print("Cleaned email content:")
-        print(email)
-        print("\n" + "-"*50 + "\n")
-
         trx = TransactionData()
         trx.is_incoming = False
         trx.payment_method = "Xsolla"
@@ -42,21 +37,21 @@ class XsollaExtractor(BaseExtractor):
         # Extract transaction number
         trx_id_match = re.search(r"Transaction number\s*(\d+)", email)
         if trx_id_match:
-            trx.trx_id = trx_id_match.group(1)
+            trx.trx_id = str(trx_id_match.group(1))
 
         # Extract transaction date
         date_match = re.search(r"Transaction date\s*(\d{2}/\d{2}/\d{4})", email)
         if date_match:
-            trx.date = datetime.datetime.strptime(date_match.group(1), "%m/%d/%Y")
+            trx.date = datetime.datetime.strptime(date_match.group(1), "%m/%d/%Y").strftime("%Y-%m-%d %H:%M:%S")
 
         # Extract total
         total_match = re.search(r"Total\s+Rp([\d\s,\.]+)", email)
         if total_match:
-            trx.amount = Decimal(total_match.group(1).replace(" ", "").replace(",", "").strip())
+            trx.amount = Decimal(total_match.group(1).replace(" ", "").replace(".00", "").strip())
 
         # Extract VAT amount
         vat_match = re.search(r"Including\s+11%\s+VAT\s*:\s*Rp([\d\s,\.]+)", email)
         if vat_match:
-            trx.fees = Decimal(vat_match.group(1).replace(" ", "").replace(",", "").strip())
+            trx.fees = Decimal(vat_match.group(1).replace(" ", "").replace(".00", "").strip())
 
         return [trx]

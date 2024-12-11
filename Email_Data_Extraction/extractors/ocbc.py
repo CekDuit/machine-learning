@@ -2,6 +2,7 @@ import re
 from decimal import Decimal
 from typing import Optional
 from datetime import datetime
+import datetime
 from .base_extractor import BaseExtractor, EmailContent, TransactionData
 
 class OCBCExtractor(BaseExtractor):
@@ -133,7 +134,7 @@ class OCBCExtractor(BaseExtractor):
         if date_match and time_match:
             # Convert to a datetime object
             final_datetime_str = f"{date_str} {time_str}"
-            trx.date = datetime.strptime(final_datetime_str, "%Y-%m-%d %H:%M:%S")
+            trx.date = datetime.datetime.strptime(final_datetime_str, "%Y-%m-%d %H:%M:%S")
 
         # Extract Payment Method
         payment_method_pattern = r"Bank Pengirim\s*:\s*(.*?)\s*(?=\n|Nama Pengirim)"
@@ -151,13 +152,13 @@ class OCBCExtractor(BaseExtractor):
             ref_match = r"Reference No.:\s*(\S+)"
             ref_match = re.search(ref_match, email)
             if ref_match:
-                trx.trx_id = ref_match.group(1)
+                trx.trx_id = str(ref_match.group(1))
 
             # Extract date & time
             date_pattern = r"Payment\s+Date:\s+(\d{2}/\d{2}/\d{4})"
             date_match = re.search(date_pattern, email)
             if date_match:
-                trx.date = datetime.strptime(date_match.group(1), "%d/%m/%Y").strftime("%Y-%m-%d")
+                trx.date = datetime.datetime.strptime(date_match.group(1), "%d/%m/%Y").strftime("%Y-%m-%d %H:%M:%S")
 
             # Extract merchant name
             merchant_pattern = r"Merchant\sPAN\s[\d]+\s+([^\n]+?)(?=\s+\w+|$)"
@@ -191,13 +192,13 @@ class OCBCExtractor(BaseExtractor):
             ref_match = r"No. Referensi:\s*(\S+)"
             ref_match = re.search(ref_match, email)
             if ref_match:
-                trx.trx_id = ref_match.group(1)
+                trx.trx_id = str(ref_match.group(1))
 
             # Extract date
             date_pattern = r"TANGGAL\s+PEMBAYARAN:\s+(\d{2}/\d{2}/\d{4})"
             date_match = re.search(date_pattern, email)
             if date_match:
-                trx.date = datetime.strptime(date_match.group(1), "%d/%m/%Y").strftime("%Y-%m-%d")
+                trx.date = datetime.datetime.strptime(date_match.group(1), "%d/%m/%Y").strftime("%Y-%m-%d %H:%M:%S")
             
             # Extract merchant
             merchant_pattern = r"PAN\sMerchant\s[\d]+\s+([^\n]+?)(?=\s+\w+|$)"
@@ -235,13 +236,13 @@ class OCBCExtractor(BaseExtractor):
         ref_match = r"Reference Number:\s*(\S+)"
         ref_match = re.search(ref_match, email)
         if ref_match:
-            trx.trx_id = ref_match.group(1)
+            trx.trx_id = str(ref_match.group(1))
 
         date_pattern = r"TRANSFER DATE:\s*(\d{2} \w{3} \d{4} \d{2}:\d{2}:\d{2} WIB)"
         # Extract date
         date_match = re.search(date_pattern, email)
         if date_match:
-            trx.date = datetime.strptime(date_match.group(1), "%d %b %Y %H:%M:%S WIB").strftime("%Y-%m-%d %H:%M:%S")
+            trx.date = datetime.datetime.strptime(date_match.group(1), "%d %b %Y %H:%M:%S WIB")
 
         # Extract merchant
         merchant_pattern = r"TO\s+[A-Za-z\s]+\s+([A-Za-z\s]+\s+[A-Za-z\s]+)"
@@ -281,7 +282,7 @@ class OCBCExtractor(BaseExtractor):
         ref_match = r"Reference\s+Number:\s+(\S+)"
         ref_match = re.search(ref_match, email)
         if ref_match:
-            trx.trx_id = ref_match.group(1)
+            trx.trx_id = str(ref_match.group(1))
 
         # Extract the amount (remove 'IDR', commas, and parse the number)
         amount_pattern = r"IDR\s*([\d,]+)"
@@ -307,7 +308,7 @@ class OCBCExtractor(BaseExtractor):
         date_pattern = r"PAYMENT DATE:\s*(\d{2} \w+ \d{4} \d{2}:\d{2}:\d{2})"
         date_match = re.search(date_pattern, email)
         if date_match:
-            trx.date = datetime.strptime(date_match.group(1), "%d %b %Y %H:%M:%S")        
+            trx.date = datetime.datetime.strptime(date_match.group(1).replace(' WIB', ''), "%d %b %Y %H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")        
 
     def _extract_value(self, pattern: str, email: str) -> Optional[str]:
         """

@@ -69,7 +69,7 @@ class OVOExtractor(BaseExtractor):
         # Extract transaction code (No. Resi)
         transaction_code_match = re.search(r"No\. Resi \(Kode Transaksi\)\s*(\S+)", email)
         if transaction_code_match:
-            trx.trx_id = transaction_code_match.group(1)
+            trx.trx_id = str(transaction_code_match.group(1))
 
         # Extract payment method
         if "OVO Cash" in email:
