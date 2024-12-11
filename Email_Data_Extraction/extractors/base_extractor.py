@@ -12,7 +12,11 @@ import email.message
 import email.policy
 import html2text
 import email.utils
+import string
+from typing import Any
 
+def to_ascii(s: Any) -> str:
+    return str(s).encode("ascii", errors="ignore").decode()
 
 class TransactionData:
     # Expected columns
@@ -45,13 +49,13 @@ class TransactionData:
     def to_formatted_dict(self):
         return {
             "Datetime": self.date,
-            "Merchant Name": self.merchant,
-            "Transaction ID": self.trx_id,
+            "Merchant Name": to_ascii(self.merchant),
+            "Transaction ID": to_ascii(self.trx_id),
             "Amount": self.amount,
             "Currency": self.currency,
             "Payment Method": self.payment_method,
             "Transaction Type": "INCOME" if self.is_incoming else "EXPENSE",
-            "Notes": self.description,
+            "Notes": to_ascii(self.description),
         }
 
 h = html2text.HTML2Text()
