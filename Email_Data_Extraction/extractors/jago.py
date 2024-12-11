@@ -12,15 +12,14 @@ class JagoExtractor(BaseExtractor):
     # )
 
     def match(self, title: str, email_from: str) -> bool:
-        valid_titles = [
-            "kamu telah membayar"
-        ]
-        valid_emails = [
-            "noreply@jago.com",
-            "tanya@jago.com"
-        ]
-        is_title_valid = any(valid_title in title.lower() for valid_title in valid_titles)
-        is_email_valid = any(valid_email in email_from.lower() for valid_email in valid_emails)
+        valid_titles = ["kamu telah membayar"]
+        valid_emails = ["noreply@jago.com", "tanya@jago.com"]
+        is_title_valid = any(
+            valid_title in title.lower() for valid_title in valid_titles
+        )
+        is_email_valid = any(
+            valid_email in email_from.lower() for valid_email in valid_emails
+        )
 
         return is_title_valid and is_email_valid
 
@@ -51,11 +50,13 @@ class JagoExtractor(BaseExtractor):
         merchant_match = re.search(r"Ke\s*(.+)", email)
         trx.merchant = merchant_match.group(1)
 
-        date_match = re.search(r"Tanggal transaksi\s*(\d{1,2} \w+ \d{4} \d{2}:\d{2})", email)
+        date_match = re.search(
+            r"Tanggal transaksi\s*(\d{1,2} \w+ \d{4} \d{2}:\d{2})", email
+        )
         date_str = date_match.group(1)
-        date_str = re.sub(r'\s+[A-Za-z]+$', '', date_str)
+        date_str = re.sub(r"\s+[A-Za-z]+$", "", date_str)
         trx.date = datetime.datetime.strptime(date_str, "%d %B %Y %H:%M")
 
-        trx.trx_id = trx.date.strftime("%Y%m%d%H%M")
+        trx.trx_id = str(trx.date.strftime("%Y%m%d%H%M"))
 
         return [trx]

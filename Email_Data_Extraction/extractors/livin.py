@@ -53,7 +53,7 @@ class MandiriExtractor(BaseExtractor):
         trx.merchant = merchant_match.group(1).strip()
 
         trx_id_match = re.search(r"No\. Referensi\s*(\d+)", email)
-        trx.trx_id = trx_id_match.group(1) if trx_id_match else None
+        trx.trx_id = str(trx_id_match.group(1)) if trx_id_match else "None"
 
         # date_match = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email)
         # time_match = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email)
@@ -145,7 +145,7 @@ class MandiriExtractor(BaseExtractor):
         trx.merchant = merchant_match.group(1).strip()
 
         trx_id_match = re.search(r"No\. Referensi\s*(\d+)", email)
-        trx.trx_id = trx_id_match.group(1) if trx_id_match else None
+        trx.trx_id = str(trx_id_match.group(1)) if trx_id_match else "None"
 
         # date_match = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email)
         # time_match = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email)
@@ -261,7 +261,7 @@ class MandiriExtractor(BaseExtractor):
         trx.merchant = merchant_match.group(1).strip()
 
         trx_id_match = re.search(r"No\. Referensi\s*(\d+)", email)
-        trx.trx_id = trx_id_match.group(1) if trx_id_match else None
+        trx.trx_id = str(trx_id_match.group(1)) if trx_id_match else "None"
 
         # date_match = re.search(r"Tanggal\s*(\d{2} \w{3} \d{4})", email)
         # time_match = re.search(r"Jam\s*(\d{2}:\d{2}:\d{2})", email)
@@ -320,9 +320,15 @@ class MandiriExtractor(BaseExtractor):
         for indo, eng in bulan_map.items():
             date_str = date_str.replace(indo, eng)
 
+        # trx.date = datetime.datetime.strptime(
+        #     f"{date_str} {time_str}", "%d %b %Y %H:%M:%S"
+        # )
+
         trx.date = datetime.datetime.strptime(
             f"{date_str} {time_str}", "%d %b %Y %H:%M:%S"
         )
+
+        print(trx.date)  # Output: 2024-12-05 15:37:00
 
         return [trx]
 

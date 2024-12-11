@@ -156,6 +156,45 @@ class PaypalExtractor(BaseExtractor):
         #     except ValueError:
         #         continue
 
+        # date_match = re.search(
+        #     r"(?:Tanggal transaksi|Transaction date)\s*\n\s*(.+)", email
+        # )
+        # date_str = date_match.group(1).strip()
+
+        # bulan_map = {
+        #     "Januari": "January",
+        #     "Februari": "February",
+        #     "Maret": "March",
+        #     "April": "April",
+        #     "Mei": "May",
+        #     "Juni": "June",
+        #     "Juli": "July",
+        #     "Agustus": "August",
+        #     "September": "September",
+        #     "Oktober": "October",
+        #     "November": "November",
+        #     "Desember": "December",
+        # }
+        # for indo, eng in bulan_map.items():
+        #     date_str = date_str.replace(indo, eng)
+
+        # date_str = re.sub(r"\s+\d{2}\.\d{2}\.\d{2}\s+(?:WIB|WITA|WIT)", "", date_str)
+
+        # date_formats = [
+        #     "%d %B %Y",
+        #     "%d %b %Y",
+        #     "%d %B %Y %H.%M.%S WIB",
+        #     "%d %B %Y %H.%M.%S WITA",
+        #     "%d %B %Y %H.%M.%S WIT",
+        #     "%b %d, %Y %H:%M:%S %Z%z",
+        # ]
+
+        # for date_format in date_formats:
+        #     try:
+        #         trx.date = datetime.datetime.strptime(date_str, date_format)
+        #     except ValueError:
+        #         pass
+
         date_match = re.search(
             r"(?:Tanggal transaksi|Transaction date)\s*\n\s*(.+)", email
         )
@@ -178,6 +217,7 @@ class PaypalExtractor(BaseExtractor):
         for indo, eng in bulan_map.items():
             date_str = date_str.replace(indo, eng)
 
+        # Remove specific time zone information like WIB/WITA/WIT
         date_str = re.sub(r"\s+\d{2}\.\d{2}\.\d{2}\s+(?:WIB|WITA|WIT)", "", date_str)
 
         date_formats = [
@@ -189,14 +229,25 @@ class PaypalExtractor(BaseExtractor):
             "%b %d, %Y %H:%M:%S %Z%z",
         ]
 
+        trx_date = None
         for date_format in date_formats:
             try:
-                trx.date = datetime.datetime.strptime(date_str, date_format)
+                # Parse the date with timezone info (if available)
+                parsed_date = datetime.datetime.strptime(date_str, date_format)
+                # Remove timezone info to get naive datetime
+                trx_date = parsed_date.replace(tzinfo=None)
+                break
             except ValueError:
                 pass
 
+        if trx_date:
+            trx.date = trx_date
+            print(trx.date)
+        else:
+            print("Failed to parse date.")
+
         trx_id_match = re.search(r"(?:ID transaksi|Transaction ID)\s*(\S+)", email)
-        trx.trx_id = trx_id_match.group(1) if trx_id_match else None
+        trx.trx_id = str(trx_id_match.group(1)) if trx_id_match else None
 
         return [trx]
 
@@ -304,7 +355,7 @@ class PaypalExtractor(BaseExtractor):
             trx.date = datetime.datetime.strptime(date_str, "%d %B %Y")
 
         trx_id_match = re.search(r"(?:ID transaksi|Transaction ID)\s*(\S+)", email)
-        trx.trx_id = trx_id_match.group(1) if trx_id_match else None
+        trx.trx_id = str(trx_id_match.group(1)) if trx_id_match else None
 
         return [trx]
 
@@ -388,7 +439,7 @@ class PaypalExtractor(BaseExtractor):
             trx.date = datetime.datetime.strptime(date_str, "%d %B %Y")
 
         trx_id_match = re.search(r"(?:ID transaksi|Transaction ID)\s*(\S+)", email)
-        trx.trx_id = trx_id_match.group(1) if trx_id_match else None
+        trx.trx_id = str(trx_id_match.group(1)) if trx_id_match else None
 
         return [trx]
 

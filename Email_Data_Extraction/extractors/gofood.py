@@ -171,6 +171,6 @@ class GoFoodExtractor(BaseExtractor):
             trx.date = None
 
         match = re.search(r"(?:Order ID|ID pesanan):\s*(\S+)", email)
-        trx.trx_id = match.group(1)
+        trx.trx_id = str(match.group(1))
 
         return [trx]
