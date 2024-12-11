@@ -104,7 +104,6 @@ class GoFoodExtractor(BaseExtractor):
             "Sabtu": "Saturday",
             "Minggu": "Sunday",
         }
-
         bulan_map = {
             "Januari": "January",
             "Februari": "February",
@@ -133,38 +132,22 @@ class GoFoodExtractor(BaseExtractor):
             tanggal = date_match_2022.group(2)
             bulan = date_match_2022.group(3)
             tahun = date_match_2022.group(4)
-
-            hari_map.update(
-                {
-                    "Monday": "Monday",
-                    "Tuesday": "Tuesday",
-                    "Wednesday": "Wednesday",
-                    "Thursday": "Thursday",
-                    "Friday": "Friday",
-                    "Saturday": "Saturday",
-                    "Sunday": "Sunday",
-                }
-            )
-
             hari_eng = hari_map.get(hari, hari)
             bulan_eng = bulan_map.get(bulan, bulan)
-
             date_str = f"{hari_eng}, {tanggal} {bulan_eng} {tahun}"
             time_str = "00:00"
-
         elif date_match_2023_2024:
             date_str = date_match_2023_2024.group(1).strip()
             time_str = date_match_2023_2024.group(2)
-
             for indo, eng in bulan_map.items():
                 date_str = date_str.replace(indo, eng)
-
         else:
             print("Tanggal tidak ditemukan dalam email")
             trx.date = None
             return
 
         try:
+            # Try parsing with a more lenient approach
             if "," in date_str:
                 trx.date = datetime.datetime.strptime(
                     f"{date_str} {time_str}", "%A, %d %B %Y %H:%M"
@@ -173,9 +156,16 @@ class GoFoodExtractor(BaseExtractor):
                 trx.date = datetime.datetime.strptime(
                     f"{date_str} {time_str}", "%d %B %Y %H:%M"
                 )
-        except ValueError as e:
-            print(f"Error parsing date: {e}")
-            trx.date = None
+        except ValueError:
+            try:
+                # Fallback parsing method
+                trx.date = datetime.datetime.strptime(
+                    f"{date_str} {time_str}", "%A %d %B %Y %H:%M"
+                )
+            except ValueError as e:
+                print(f"Error parsing date: {e}")
+                print(f"Problematic date string: {date_str} {time_str}")
+                trx.date = None
 
         match = re.search(r"(?:Order ID|ID pesanan):\s*(\S+)", email)
         trx.trx_id = str(match.group(1))
