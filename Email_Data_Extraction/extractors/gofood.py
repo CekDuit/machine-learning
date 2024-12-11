@@ -3,18 +3,20 @@ from .base_extractor import BaseExtractor, EmailContent, TransactionData
 import re
 import datetime
 
+
 class GoFoodExtractor(BaseExtractor):
     def match(self, title: str, email_from: str) -> bool:
-        valid_titles = [
-            "your food order with gojek",
-            "pesanan makananmu bersama gojek"
-        ]
+        valid_titles = ["your food order with gojek", "pesanan makananmu bersama gojek"]
         valid_emails = [
             "no-reply@invoicing.gojek.com"
             # "m320b4ky1551@bangkit.academy"
         ]
-        is_title_valid = any(valid_title in title.lower() for valid_title in valid_titles)
-        is_email_valid = any(valid_email in email_from.lower() for valid_email in valid_emails)
+        is_title_valid = any(
+            valid_title in title.lower() for valid_title in valid_titles
+        )
+        is_email_valid = any(
+            valid_email in email_from.lower() for valid_email in valid_emails
+        )
 
         return is_title_valid and is_email_valid
 
@@ -48,18 +50,27 @@ class GoFoodExtractor(BaseExtractor):
         # Create transaction object
         trx = TransactionData()
         trx.is_incoming = False
-        trx.merchant = "GoFood"
         trx.currency = "IDR"
 
-        total_payment_match = re.search(r"Total (payment|pembayaran)\s*Rp([\d.]+)", email)
-        trx.amount = Decimal(total_payment_match.group(2).replace('.', ''))
+        # pattern = r"Delivered on .*? from\s*\n(.*?)(?=\n)"
+        # trx.merchant = re.search(pattern, email).group(1).split(",")[0]
 
-        payment_match = re.findall(r"(?:Paid with|Bayar pakai)\s+([A-Za-z\s]+)(?=\s+Rp|$)", email)
+        pattern = r"from\s*\n(.*?)(?=,|\n)"
+        trx.merchant = re.search(pattern, email).group(1)
+
+        total_payment_match = re.search(
+            r"Total (payment|pembayaran)\s*Rp([\d.]+)", email
+        )
+        trx.amount = Decimal(total_payment_match.group(2).replace(".", ""))
+
+        payment_match = re.findall(
+            r"(?:Paid with|Bayar pakai)\s+([A-Za-z\s]+)(?=\s+Rp|$)", email
+        )
 
         payment_methods = []
         payment_methods.extend(payment_match)
         trx.payment_method = " + ".join(payment_methods)
-        
+
         trx.description = ""
 
         # bulan_map = {
@@ -84,9 +95,9 @@ class GoFoodExtractor(BaseExtractor):
             "Kamis": "Thursday",
             "Jumat": "Friday",
             "Sabtu": "Saturday",
-            "Minggu": "Sunday"
+            "Minggu": "Sunday",
         }
-        
+
         bulan_map = {
             "Januari": "January",
             "Februari": "February",
@@ -99,51 +110,62 @@ class GoFoodExtractor(BaseExtractor):
             "September": "September",
             "Oktober": "October",
             "November": "November",
-            "Desember": "December"
+            "Desember": "December",
         }
 
-        date_match_2022 = re.search(r"(?:on\s+)?((?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Senin|Selasa|Rabu|Kamis|Jumat|Sabtu|Minggu)),?\s+(\d+)\s+(\w+)\s+(\d{4})", email)
-        date_match_2023_2024 = re.search(r"(?:Delivered on|Diantarkan)\s+(\d+ \w+ \d{4}) at (\d{2}:\d{2})", email)
+        date_match_2022 = re.search(
+            r"(?:on\s+)?((?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Senin|Selasa|Rabu|Kamis|Jumat|Sabtu|Minggu)),?\s+(\d+)\s+(\w+)\s+(\d{4})",
+            email,
+        )
+        date_match_2023_2024 = re.search(
+            r"(?:Delivered on|Diantarkan)\s+(\d+ \w+ \d{4}) at (\d{2}:\d{2})", email
+        )
 
         if date_match_2022:
             hari = date_match_2022.group(1)
             tanggal = date_match_2022.group(2)
             bulan = date_match_2022.group(3)
             tahun = date_match_2022.group(4)
-            
-            hari_map.update({
-                "Monday": "Monday",
-                "Tuesday": "Tuesday",
-                "Wednesday": "Wednesday",
-                "Thursday": "Thursday",
-                "Friday": "Friday",
-                "Saturday": "Saturday",
-                "Sunday": "Sunday"
-            })
-            
+
+            hari_map.update(
+                {
+                    "Monday": "Monday",
+                    "Tuesday": "Tuesday",
+                    "Wednesday": "Wednesday",
+                    "Thursday": "Thursday",
+                    "Friday": "Friday",
+                    "Saturday": "Saturday",
+                    "Sunday": "Sunday",
+                }
+            )
+
             hari_eng = hari_map.get(hari, hari)
             bulan_eng = bulan_map.get(bulan, bulan)
-            
+
             date_str = f"{hari_eng}, {tanggal} {bulan_eng} {tahun}"
             time_str = "00:00"
-            
+
         elif date_match_2023_2024:
             date_str = date_match_2023_2024.group(1).strip()
             time_str = date_match_2023_2024.group(2)
-            
+
             for indo, eng in bulan_map.items():
                 date_str = date_str.replace(indo, eng)
-                
+
         else:
             print("Tanggal tidak ditemukan dalam email")
             trx.date = None
-            return 
+            return
 
         try:
             if "," in date_str:
-                trx.date = datetime.datetime.strptime(f"{date_str} {time_str}", "%A, %d %B %Y %H:%M")
+                trx.date = datetime.datetime.strptime(
+                    f"{date_str} {time_str}", "%A, %d %B %Y %H:%M"
+                )
             else:
-                trx.date = datetime.datetime.strptime(f"{date_str} {time_str}", "%d %B %Y %H:%M")
+                trx.date = datetime.datetime.strptime(
+                    f"{date_str} {time_str}", "%d %B %Y %H:%M"
+                )
         except ValueError as e:
             print(f"Error parsing date: {e}")
             trx.date = None
