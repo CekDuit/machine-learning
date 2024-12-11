@@ -103,7 +103,13 @@ class PaypalExtractor(BaseExtractor):
             description_match.group(1).strip() if description_match else ""
         )
 
-        trx.merchant = "Paypal"
+        pattern = r"Merchant\s*\n(.*)\n"
+        match = re.search(pattern, email)
+
+        if match:
+            trx.merchant = match.group(1).strip()
+        else:
+            trx.merchant = "Paypal"
 
         # date_match = re.search(r"(?:Tanggal transaksi|Transaction date)\s*\n\s*(.+)", email)
         # date_str = date_match.group(1).strip()
@@ -263,7 +269,13 @@ class PaypalExtractor(BaseExtractor):
             description_match.group(1).strip() if description_match else ""
         )
 
-        trx.merchant = "Paypal"
+        pattern = r"Merchant\s*\n(.*)\n"
+        match = re.search(pattern, email)
+
+        if match:
+            trx.merchant = match.group(1).strip()
+        else:
+            trx.merchant = "Paypal"
 
         date_match = re.search(
             r"(?:Tanggal transaksi|Transaction date)\s*\n\s*(.+)", email
@@ -338,7 +350,16 @@ class PaypalExtractor(BaseExtractor):
             description_match.group(1).strip() if description_match else ""
         )
 
-        trx.merchant = "Paypal"
+        # merchant_regex = r"(?<=Merchant\s)\n.*?(?=\n)"
+        # trx.merchant = re.search(merchant_regex, email_text).group().strip()
+
+        pattern = r"Merchant\s*\n(.*)\n"
+        match = re.search(pattern, email)
+
+        if match:
+            trx.merchant = match.group(1).strip()
+        else:
+            trx.merchant = "Paypal"
 
         date_match = re.search(
             r"(?:Tanggal transaksi|Transaction date)\s*\n\s*(.+)", email
