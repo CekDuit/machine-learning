@@ -35,8 +35,8 @@ We do not have a public dataset. However, you can create your own dataset by fol
 2. Add a Gmail readonly API access to your project.
 3. Create a Desktop OAuth Client ID and download the credentials.
 4. Place the `client_secret.json` file in the `Email_Data_Extraction` folder.
-5. Run the (extract_email_titles.py)[./Email_Data_Extraction/extract_email_titles.py] script to extract email titles from your Gmail account. The script will ask you to authorize the script to access your Gmail account. Once done, the script will create a `email-titles.csv` file in the `Email_Data_Extraction` folder.
-6. You may then add is_transaction labels to the `email-titles.csv` file using the (titles-labeller.ipynb)[./Email_Data_Extraction/tools/titles-labeller.ipynb] notebook. The notebook uses a local LLM model through Ollama to help label the titles. This can also be done manually.
+5. Run the [extract_email_titles.py](./Email_Data_Extraction/extract_email_titles.py) script to extract email titles from your Gmail account. The script will ask you to authorize the script to access your Gmail account. Once done, the script will create a `email-titles.csv` file in the `Email_Data_Extraction` folder.
+6. You may then add is_transaction labels to the `email-titles.csv` file using the [titles-labeller.ipynb](./Email_Data_Extraction/tools/titles-labeller.ipynb) notebook. The notebook uses a local LLM model through Ollama to help label the titles. This can also be done manually.
 
 #### Training the transaction classifier
 We use primarily the [TensorFlow](https://www.tensorflow.org/) library for training the classification model.
