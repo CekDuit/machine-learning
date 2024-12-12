@@ -50,20 +50,13 @@ class GoFoodExtractor(BaseExtractor):
         # Create transaction object
         trx = TransactionData()
         trx.is_incoming = False
-        trx.currency = "IDR"
-
-        # pattern = r"Delivered on .*? from\s*\n(.*?)(?=\n)"
-        # trx.merchant = re.search(pattern, email).group(1).split(",")[0]
-
-        # pattern = r"from\s*\n(.*?)(?=,|\n)"
-        # trx.merchant = re.search(pattern, email).group(1)
-
         pattern = r"(?:from|dari)\s*\n(.*?)(?=,|\n)"
         match = re.search(pattern, email)
         if match:
             trx.merchant = match.group(1)
         else:
             trx.merchant = None
+        trx.currency = "IDR"
 
         total_payment_match = re.search(
             r"Total (payment|pembayaran)\s*Rp([\d.]+)", email
@@ -104,6 +97,7 @@ class GoFoodExtractor(BaseExtractor):
             "Sabtu": "Saturday",
             "Minggu": "Sunday",
         }
+
         bulan_map = {
             "Januari": "January",
             "Februari": "February",
@@ -119,6 +113,20 @@ class GoFoodExtractor(BaseExtractor):
             "Desember": "December",
         }
 
+        # Merge English and Indonesian day names
+        hari_map.update(
+            {
+                "Monday": "Monday",
+                "Tuesday": "Tuesday",
+                "Wednesday": "Wednesday",
+                "Thursday": "Thursday",
+                "Friday": "Friday",
+                "Saturday": "Saturday",
+                "Sunday": "Sunday",
+            }
+        )
+
+        # Try different date parsing patterns
         date_match_2022 = re.search(
             r"(?:on\s+)?((?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Senin|Selasa|Rabu|Kamis|Jumat|Sabtu|Minggu)),?\s+(\d+)\s+(\w+)\s+(\d{4})",
             email,
@@ -127,47 +135,52 @@ class GoFoodExtractor(BaseExtractor):
             r"(?:Delivered on|Diantarkan)\s+(\d+ \w+ \d{4}) at (\d{2}:\d{2})", email
         )
 
+        # Initialize date and time variables
+        date_str = None
+        time_str = "00:00"  # Default time if not found
+
         if date_match_2022:
+            # Parse date from the first pattern (2022 style)
             hari = date_match_2022.group(1)
             tanggal = date_match_2022.group(2)
             bulan = date_match_2022.group(3)
             tahun = date_match_2022.group(4)
+
             hari_eng = hari_map.get(hari, hari)
             bulan_eng = bulan_map.get(bulan, bulan)
-            date_str = f"{hari_eng}, {tanggal} {bulan_eng} {tahun}"
-            time_str = "00:00"
+
+            date_str = f"{tanggal} {bulan_eng} {tahun}"
+
         elif date_match_2023_2024:
+            # Parse date from the second pattern (2023-2024 style)
             date_str = date_match_2023_2024.group(1).strip()
             time_str = date_match_2023_2024.group(2)
+
+            # Replace Indonesian month names with English
             for indo, eng in bulan_map.items():
                 date_str = date_str.replace(indo, eng)
+
         else:
             print("Tanggal tidak ditemukan dalam email")
             trx.date = None
-            return
+            return [trx]
 
         try:
-            # Try parsing with a more lenient approach
-            if "," in date_str:
-                trx.date = datetime.datetime.strptime(
-                    f"{date_str} {time_str}", "%A, %d %B %Y %H:%M"
-                )
-            else:
+            # Try parsing without day name first
+            try:
                 trx.date = datetime.datetime.strptime(
                     f"{date_str} {time_str}", "%d %B %Y %H:%M"
                 )
-        except ValueError:
-            try:
-                # Fallback parsing method
+            except ValueError:
+                # If that fails, try with day name
                 trx.date = datetime.datetime.strptime(
-                    f"{date_str} {time_str}", "%A %d %B %Y %H:%M"
+                    f"{date_str} {time_str}", "%A, %d %B %Y %H:%M"
                 )
-            except ValueError as e:
-                print(f"Error parsing date: {e}")
-                print(f"Problematic date string: {date_str} {time_str}")
-                trx.date = None
+        except ValueError as e:
+            print(f"Error parsing date: {e}")
+            trx.date = None
 
         match = re.search(r"(?:Order ID|ID pesanan):\s*(\S+)", email)
-        trx.trx_id = str(match.group(1))
+        trx.trx_id = match.group(1)
 
         return [trx]
