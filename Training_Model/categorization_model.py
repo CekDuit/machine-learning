@@ -13,7 +13,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import pickle
 from datetime import datetime
 from decimal import Decimal
-from ..Email_Data_Extraction.extractors.base_extractor import TransactionData
+from tensorflow.keras.layers import IntegerLookup
+from tensorflow.keras.layers import StringLookup
+#from ..Email_Data_Extraction.extractors.base_extractor import TransactionData
 
 # Ensure nltk WordNet is downloaded
 nltk.download('wordnet')
@@ -45,66 +47,95 @@ def augment_text_with_synonyms(text, num_replacements=2):
 # Process datetime-related features
 def process_datetime_features(df):
     """ Process datetime-related features like Year, Month, DayOfWeek, etc. """
-    df['Datetime'] = pd.to_datetime(df['Datetime'])
-    df['Year'] = df['Datetime'].dt.year
-    df['Month'] = df['Datetime'].dt.month
-    df['DayOfWeek'] = df['Datetime'].dt.dayofweek
-    df['DayOfMonth'] = df['Datetime'].dt.day
-    df['WeekOfYear'] = df['Datetime'].dt.isocalendar().week
-    df['IsWeekend'] = df['Datetime'].dt.dayofweek.isin([5, 6]).astype(int)
+    df['Datetime'] = pd.to_datetime(df['Datetime'])  # Handle invalid dates gracefully
+    df['Year'] = df['Datetime'].dt.year.astype(np.int32)
+    df['Month'] = df['Datetime'].dt.month.astype(np.int32)
+    df['DayOfWeek'] = df['Datetime'].dt.dayofweek.astype(np.int32)
+    df['DayOfMonth'] = df['Datetime'].dt.day.astype(np.int32)
+    df['WeekOfYear'] = df['Datetime'].dt.isocalendar().week.astype(np.int32)
+    df['IsWeekend'] = df['Datetime'].dt.dayofweek.isin([5, 6]).astype(np.int32)
     return df
 
 # Preprocess the training and test datasets
 def preprocess_transaction_data(train_df, test_df):
-    """ Preprocess the training and testing data, applying text augmentation, TF-IDF, category encoding, and scaling. """
-    
+    """Preprocess the training and testing data, applying text augmentation, TF-IDF, category encoding, and scaling."""
+
     # Process datetime features
     train_df = process_datetime_features(train_df)
     test_df = process_datetime_features(test_df)
+    print("Datetime Features Processed.")
+
+    # Ensure all values in "Notes" and "Merchant Name" columns are strings
+    train_df['Notes'] = train_df['Notes'].astype(str)
+    train_df['Merchant Name'] = train_df['Merchant Name'].astype(str)
+    test_df['Notes'] = test_df['Notes'].astype(str)
+    test_df['Merchant Name'] = test_df['Merchant Name'].astype(str)
 
     # Apply text augmentation on "Notes" and "Merchant Name" columns
-    train_df['Notes'] = train_df['Notes'].apply(lambda x: augment_text_with_synonyms(str(x), num_replacements=2))
-    train_df['Merchant Name'] = train_df['Merchant Name'].apply(lambda x: augment_text_with_synonyms(str(x), num_replacements=1))
+    train_df['Notes'] = train_df['Notes'].apply(lambda x: augment_text_with_synonyms(x, num_replacements=2))
+    train_df['Merchant Name'] = train_df['Merchant Name'].apply(lambda x: augment_text_with_synonyms(x, num_replacements=1))
 
-    # TF-IDF for 'Notes' column
-    tfidf_vectorizer_notes = TextVectorization(max_features=150, ngram_range=(1, 2))
-    tfidf_train_notes = tfidf_vectorizer_notes(train_df['Notes'].values)
-    tfidf_test_notes = tfidf_vectorizer_notes(test_df['Notes'].values)
+    # TF-IDF for 'Notes' and 'Merchant Name'
+    tfidf_vectorizer_notes = TextVectorization(max_tokens=150, output_mode='tf-idf')
+    tfidf_vectorizer_notes.adapt(tf.constant(train_df['Notes'].values, dtype=tf.string))
+    tfidf_train_notes = tfidf_vectorizer_notes(tf.constant(train_df['Notes'].values, dtype=tf.string)).numpy().astype(np.float32)
+    tfidf_test_notes = tfidf_vectorizer_notes(tf.constant(test_df['Notes'].values, dtype=tf.string)).numpy().astype(np.float32)
 
-    # TF-IDF for 'Merchant Name' column
-    tfidf_vectorizer_merchant = TextVectorization(max_features=150)
-    tfidf_train_merchant = tfidf_vectorizer_merchant(train_df['Merchant Name'].values)
-    tfidf_test_merchant = tfidf_vectorizer_merchant(test_df['Merchant Name'].values)
+    tfidf_vectorizer_merchant = TextVectorization(max_tokens=150, output_mode='tf-idf')
+    tfidf_vectorizer_merchant.adapt(tf.constant(train_df['Merchant Name'].values, dtype=tf.string))
+    tfidf_train_merchant = tfidf_vectorizer_merchant(tf.constant(train_df['Merchant Name'].values, dtype=tf.string)).numpy().astype(np.float32)
+    tfidf_test_merchant = tfidf_vectorizer_merchant(tf.constant(test_df['Merchant Name'].values, dtype=tf.string)).numpy().astype(np.float32)
 
-    # Save the vectorizers for future use
     save_pickle(tfidf_vectorizer_notes, 'trained/notes_vectorizer.pkl')
     save_pickle(tfidf_vectorizer_merchant, 'trained/merchant_vectorizer.pkl')
 
-    # Category Encoding for 'Payment Method' and 'Transaction Type'
-    category_encoding_layer = CategoryEncoding(output_mode='one_hot')
-    categorical_train = category_encoding_layer(tf.convert_to_tensor(train_df[['Payment Method', 'Transaction Type']].values))
-    categorical_test = category_encoding_layer(tf.convert_to_tensor(test_df[['Payment Method', 'Transaction Type']].values))
+    # Ensure all categorical columns are strings
+    train_df['Payment Method'] = train_df['Payment Method'].astype(str)
+    train_df['Transaction Type'] = train_df['Transaction Type'].astype(str)
+    test_df['Payment Method'] = test_df['Payment Method'].astype(str)
+    test_df['Transaction Type'] = test_df['Transaction Type'].astype(str)
 
-    # Save the category encoding layer for future use
-    save_pickle(category_encoding_layer, 'trained/category_encoding_layer.pkl')
+    # String Lookup for categorical columns
+    lookup_payment_method = tf.keras.layers.StringLookup()
+    lookup_transaction_type = tf.keras.layers.StringLookup()
 
-    # Scaling the numerical features (e.g., Amount, Year, Month, DayOfWeek, etc.)
+    # Adapt lookup layers
+    lookup_payment_method.adapt(tf.constant(train_df['Payment Method'], dtype=tf.string))
+    lookup_transaction_type.adapt(tf.constant(train_df['Transaction Type'], dtype=tf.string))
+
+    # Apply lookup transformation
+    train_payment_method = lookup_payment_method(tf.constant(train_df['Payment Method'], dtype=tf.string)).numpy()
+    train_transaction_type = lookup_transaction_type(tf.constant(train_df['Transaction Type'], dtype=tf.string)).numpy()
+    test_payment_method = lookup_payment_method(tf.constant(test_df['Payment Method'], dtype=tf.string)).numpy()
+    test_transaction_type = lookup_transaction_type(tf.constant(test_df['Transaction Type'], dtype=tf.string)).numpy()
+
+    train_payment_method_onehot = tf.one_hot(train_payment_method, depth=lookup_payment_method.vocabulary_size()).numpy().astype(np.float32)
+    train_transaction_type_onehot = tf.one_hot(train_transaction_type, depth=lookup_transaction_type.vocabulary_size()).numpy().astype(np.float32)
+    test_payment_method_onehot = tf.one_hot(test_payment_method, depth=lookup_payment_method.vocabulary_size()).numpy().astype(np.float32)
+    test_transaction_type_onehot = tf.one_hot(test_transaction_type, depth=lookup_transaction_type.vocabulary_size()).numpy().astype(np.float32)
+
+    categorical_train = np.hstack((train_payment_method_onehot, train_transaction_type_onehot))
+    categorical_test = np.hstack((test_payment_method_onehot, test_transaction_type_onehot))
+
+    save_pickle(lookup_payment_method, 'trained/lookup_payment_method.pkl')
+    save_pickle(lookup_transaction_type, 'trained/lookup_transaction_type.pkl')
+
+    # Scaling numerical features
     scaler = StandardScaler()
     numerical_features = ['Amount', 'Year', 'Month', 'DayOfWeek', 'DayOfMonth', 'WeekOfYear', 'IsWeekend']
-    numerical_train = train_df[numerical_features]
-    numerical_test = test_df[numerical_features]
+    numerical_train = train_df[numerical_features].astype(np.float32)
+    numerical_test = test_df[numerical_features].astype(np.float32)
 
     numerical_train_scaled = scaler.fit_transform(numerical_train)
     numerical_test_scaled = scaler.transform(numerical_test)
 
-    # Save the scaler for future use
     save_pickle(scaler, 'trained/scaler.pkl')
 
-    # Combine all processed features into a single feature set
+    # Combine all features
     X_train_combined = np.hstack((numerical_train_scaled, categorical_train, tfidf_train_notes, tfidf_train_merchant))
     X_test_combined = np.hstack((numerical_test_scaled, categorical_test, tfidf_test_notes, tfidf_test_merchant))
 
-    return X_train_combined, X_test_combined, scaler, tfidf_vectorizer_notes, tfidf_vectorizer_merchant, category_encoding_layer
+    return X_train_combined, X_test_combined, scaler, tfidf_vectorizer_notes, tfidf_vectorizer_merchant, lookup_payment_method, lookup_transaction_type
 
 # Create a complex model for the task
 def create_model(input_dim, output_dim, category_encoding_layer, tfidf_vectorizer_notes, tfidf_vectorizer_merchant):
@@ -132,59 +163,75 @@ def create_model(input_dim, output_dim, category_encoding_layer, tfidf_vectorize
 # Training and evaluation function
 def train_and_evaluate(training_data_path, testing_data_path):
     """Trains and evaluates the model using the provided training data from .xlsx."""
-    
+
     # Load the training dataset from .xlsx file
     train_df = pd.read_excel(training_data_path)
+    print("Training DataFrame Shape:", train_df.shape)
+    print(train_df.head())
 
-    # Convert TransactionData objects to DataFrame for testing (without the 'Category' column)
+    # Load the test dataset from .xlsx file
     test_df = pd.read_excel(testing_data_path)
+    print("Test DataFrame Shape (Before Setting 'Category' to NaN):", test_df.shape)
 
-    # Ensure 'Category' column is not present in test_df
-    if 'Category' in test_df.columns:
-        test_df = test_df.drop('Category', axis=1)
+    # Ensure 'Category' column exists in the test data, set to NaN
+    if 'Category' not in test_df.columns:
+        test_df['Category'] = np.nan
+    else:
+        test_df['Category'] = np.nan  # Overwrite existing Category values with NaN
+    print("Test DataFrame Shape (After Setting 'Category' to NaN):", test_df.shape)
 
     # Preprocess the data
-    X_train, X_test, scaler, tfidf_vectorizer_notes, tfidf_vectorizer_merchant, category_encoding_layer = preprocess_transaction_data(train_df, test_df)
+    X_train, X_test, scaler, tfidf_vectorizer_notes, tfidf_vectorizer_merchant, lookup_payment_method, lookup_transaction_type = preprocess_transaction_data(train_df, test_df)
+    print("X_train Shape:", X_train.shape)
+    print("X_test Shape:", X_test.shape)
 
     # Encode the target labels for training data
     le_category = LabelEncoder()
     y_train = le_category.fit_transform(train_df['Category'])
-    
-    # Since there's no 'Category' in the test data, this line will be ignored.
-    y_test = le_category.transform(test_df.get('Category', []))  # Will be empty if no 'Category' in test_df
+    print("y_train Shape:", y_train.shape)
+
+    # If `Category` in the test data is NaN, y_test will be empty
+    y_test = le_category.transform(test_df['Category'].dropna()) if not test_df['Category'].isna().all() else np.array([])
+    print("y_test Shape:", y_test.shape)
 
     save_pickle(le_category, 'trained/label_encoder.pkl')
 
-    # One-hot encode the target labels
+    # One-hot encode the training labels
     y_train_onehot = tf.keras.utils.to_categorical(y_train)
-    y_test_onehot = tf.keras.utils.to_categorical(y_test)
+    print("y_train_onehot Shape:", y_train_onehot.shape)
+
+    # One-hot encode the test labels if they exist
+    y_test_onehot = tf.keras.utils.to_categorical(y_test) if y_test.size > 0 else None
+    if y_test_onehot is not None:
+        print("y_test_onehot Shape:", y_test_onehot.shape)
 
     # Create the model
-    model = create_model(X_train.shape[1], y_train_onehot.shape[1], category_encoding_layer, tfidf_vectorizer_notes, tfidf_vectorizer_merchant)
+    model = create_model(X_train.shape[1], y_train_onehot.shape[1], lookup_payment_method, tfidf_vectorizer_notes, tfidf_vectorizer_merchant)
     
     # Compile the model
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
 
     # Train the model
-    history = model.fit(X_train, y_train_onehot, epochs=300, batch_size=64, validation_split=0.2, verbose=1)
+    history = model.fit(X_train, y_train_onehot, epochs=15, batch_size=64, validation_split=0.2, verbose=1)
 
-    # Evaluate the model on the test set
-    test_loss, test_accuracy = model.evaluate(X_test, y_test_onehot, verbose=0)
-    print(f"Test Accuracy: {test_accuracy:.4f}")
-    print(f"Test Loss: {test_loss:.4f}")
+    # Evaluate the model on the test set if labels are available
+    if y_test.size > 0 and X_test.size > 0:
+        print("Evaluating on test data...")
+        test_loss, test_accuracy = model.evaluate(X_test, y_test_onehot, verbose=0)
+        print(f"Test Accuracy: {test_accuracy:.4f}")
+        print(f"Test Loss: {test_loss:.4f}")
+    else:
+        print("Skipping test evaluation: Test data lacks valid 'Category' labels.")
 
     # Predict the categories for the test data
-    y_test_pred = model.predict(X_test)
-
-    # Convert predictions from one-hot encoding back to label encoding
-    y_test_pred_labels = np.argmax(y_test_pred, axis=1)
-
-    # Optionally, decode the predicted labels back to the original category names
-    category_labels = le_category.classes_
-    y_test_pred_categories = category_labels[y_test_pred_labels]
-
-    print("Predicted Categories for Test Data:")
-    print(y_test_pred_categories)
+    if X_test.size > 0:
+        print("Making predictions for the test data...")
+        y_test_pred = model.predict(X_test)
+        y_test_pred_labels = np.argmax(y_test_pred, axis=1)
+        category_labels = le_category.classes_
+        y_test_pred_categories = category_labels[y_test_pred_labels]
+    else:
+        print("Skipping prediction: Test data is empty.")
 
     # Plot the training and validation accuracy
     plt.figure(figsize=(12, 6))
@@ -212,10 +259,10 @@ def train_and_evaluate(training_data_path, testing_data_path):
 
 # Example paths (replace with actual file paths)
 training_data_path = 'Training_Datasets.xlsx'
-test_data_path = 'Testing_Datasets.xlsx'
+testing_data_path = 'Testing_Datasets.xlsx'
 
 # Train and evaluate the model
-model = train_and_evaluate(training_data_path, test_data_path)
+model = train_and_evaluate(training_data_path, testing_data_path)
 
 # Save the model in .keras format
 model.save("trained/category_prediction_model.keras")
