@@ -77,8 +77,8 @@ def preprocess_transaction_data(train_df, test_df):
     tfidf_test_merchant = tfidf_vectorizer_merchant(test_df['Merchant Name'].values)
 
     # Save the vectorizers for future use
-    save_pickle(tfidf_vectorizer_notes, 'notes_vectorizer.pkl')
-    save_pickle(tfidf_vectorizer_merchant, 'merchant_vectorizer.pkl')
+    save_pickle(tfidf_vectorizer_notes, 'trained/notes_vectorizer.pkl')
+    save_pickle(tfidf_vectorizer_merchant, 'trained/merchant_vectorizer.pkl')
 
     # Category Encoding for 'Payment Method' and 'Transaction Type'
     category_encoding_layer = CategoryEncoding(output_mode='one_hot')
@@ -86,7 +86,7 @@ def preprocess_transaction_data(train_df, test_df):
     categorical_test = category_encoding_layer(tf.convert_to_tensor(test_df[['Payment Method', 'Transaction Type']].values))
 
     # Save the category encoding layer for future use
-    save_pickle(category_encoding_layer, 'category_encoding_layer.pkl')
+    save_pickle(category_encoding_layer, 'trained/category_encoding_layer.pkl')
 
     # Scaling the numerical features (e.g., Amount, Year, Month, DayOfWeek, etc.)
     scaler = StandardScaler()
@@ -98,7 +98,7 @@ def preprocess_transaction_data(train_df, test_df):
     numerical_test_scaled = scaler.transform(numerical_test)
 
     # Save the scaler for future use
-    save_pickle(scaler, 'scaler.pkl')
+    save_pickle(scaler, 'trained/scaler.pkl')
 
     # Combine all processed features into a single feature set
     X_train_combined = np.hstack((numerical_train_scaled, categorical_train, tfidf_train_notes, tfidf_train_merchant))
@@ -225,5 +225,5 @@ test_data = trx_data
 model = train_and_evaluate(training_data_path, test_data)
 
 # Save the model in .keras format
-model.save("category_prediction_model.keras")
+model.save("trained/category_prediction_model.keras")
 print("Model saved as category_prediction_model.keras")
