@@ -166,7 +166,7 @@ def train_and_evaluate(training_data_path, test_data):
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
 
     # Train the model
-    history = model.fit(X_train, y_train_onehot, epochs=50, batch_size=64, validation_split=0.2, verbose=1)
+    history = model.fit(X_train, y_train_onehot, epochs=300, batch_size=64, validation_split=0.2, verbose=1)
 
     # Evaluate the model on the test set
     test_loss, test_accuracy = model.evaluate(X_test, y_test_onehot, verbose=0)
