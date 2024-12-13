@@ -27,6 +27,8 @@ def train_and_evaluate(train_df, test_df, X_train, X_test, y_train, y_test):
 
     history = model.fit(X_train, keras.utils.to_categorical(y_train), epochs=15, validation_split=0.2)
 
+    save_pickle('transaction_classifier_history.pkl', history.history)
+
     if len(y_test) > 0:
         test_loss, test_accuracy = model.evaluate(X_test, keras.utils.to_categorical(y_test))
         print(f"Test Accuracy: {test_accuracy:.4f}, Test Loss: {test_loss:.4f}")
