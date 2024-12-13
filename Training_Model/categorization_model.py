@@ -130,14 +130,14 @@ def create_model(input_dim, output_dim, category_encoding_layer, tfidf_vectorize
     return model
 
 # Training and evaluation function
-def train_and_evaluate(training_data_path, test_data):
+def train_and_evaluate(training_data_path, testing_data_path):
     """Trains and evaluates the model using the provided training data from .xlsx."""
     
     # Load the training dataset from .xlsx file
     train_df = pd.read_excel(training_data_path)
 
     # Convert TransactionData objects to DataFrame for testing (without the 'Category' column)
-    test_df = pd.DataFrame([tx.to_formatted_dict() for tx in test_data])
+    test_df = pd.read_excel(testing_data_path)
 
     # Ensure 'Category' column is not present in test_df
     if 'Category' in test_df.columns:
@@ -212,19 +212,10 @@ def train_and_evaluate(training_data_path, test_data):
 
 # Example paths (replace with actual file paths)
 training_data_path = 'Training_Dataset.xlsx'
-trx_data = TransactionData()
-trx_data.trx_id = "MB202408171843272383"
-trx_data.date = datetime.now()
-trx_data.merchant = "Payssion"
-trx_data.amount = Decimal(16483)
-trx_data.currency = "IDR"
-trx_data.payment_method = "OCBC"
-trx_data.is_incoming = False
-trx_data.description = "QR Payment Merchant PAN 9360091503607510"
-test_data = trx_data    
+test_data_path = 'Testing_Dataset.xlsx'
 
 # Train and evaluate the model
-model = train_and_evaluate(training_data_path, test_data)
+model = train_and_evaluate(training_data_path, test_data_path)
 
 # Save the model in .keras format
 model.save("trained/category_prediction_model.keras")
