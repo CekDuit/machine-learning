@@ -211,8 +211,8 @@ def train_and_evaluate(training_data_path, testing_data_path):
     return model
 
 # Example paths (replace with actual file paths)
-training_data_path = 'Training_Dataset.xlsx'
-test_data_path = 'Testing_Dataset.xlsx'
+training_data_path = 'Training_Datasets.xlsx'
+test_data_path = 'Testing_Datasets.xlsx'
 
 # Train and evaluate the model
 model = train_and_evaluate(training_data_path, test_data_path)
