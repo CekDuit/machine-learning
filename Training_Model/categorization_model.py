@@ -153,6 +153,8 @@ def train_and_evaluate(training_data_path, test_data):
     # Since there's no 'Category' in the test data, this line will be ignored.
     y_test = le_category.transform(test_df.get('Category', []))  # Will be empty if no 'Category' in test_df
 
+    save_pickle(le_category, 'trained/label_encoder.pkl')
+
     # One-hot encode the target labels
     y_train_onehot = tf.keras.utils.to_categorical(y_train)
     y_test_onehot = tf.keras.utils.to_categorical(y_test)
