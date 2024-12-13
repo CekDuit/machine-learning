@@ -5,7 +5,7 @@ import random
 import nltk
 from nltk.corpus import wordnet
 import tensorflow as tf
-from tensorflow.keras.layers import TextVectorization
+import keras
 from sklearn.preprocessing import StandardScaler
 from utils import save_pickle, load_pickle
 
@@ -48,12 +48,12 @@ def preprocess_transaction_data(train_df, test_df):
     train_df['Merchant Name'] = train_df['Merchant Name'].apply(lambda x: augment_text_with_synonyms(x, num_replacements=1))
 
     # TF-IDF
-    tfidf_notes = TextVectorization(max_tokens=150, output_mode='tf-idf')
+    tfidf_notes = keras.layers.TextVectorization(max_tokens=150, output_mode='tf-idf')
     tfidf_notes.adapt(tf.constant(train_df['Notes']))
     tfidf_train_notes = tfidf_notes(tf.constant(train_df['Notes'])).numpy()
     tfidf_test_notes = tfidf_notes(tf.constant(test_df['Notes'])).numpy()
 
-    tfidf_merchant = TextVectorization(max_tokens=150, output_mode='tf-idf')
+    tfidf_merchant = keras.layers.TextVectorization(max_tokens=150, output_mode='tf-idf')
     tfidf_merchant.adapt(tf.constant(train_df['Merchant Name']))
     tfidf_train_merchant = tfidf_merchant(tf.constant(train_df['Merchant Name'])).numpy()
     tfidf_test_merchant = tfidf_merchant(tf.constant(test_df['Merchant Name'])).numpy()
